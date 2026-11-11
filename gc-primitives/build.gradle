@@ -1,0 +1,75 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+}
+
+description = 'Allocation-reducing object pooling primitives for the JVM'
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+    // 运行时零依赖；测试期才引入 JUnit
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifactId = 'gc-primitives'
+            pom {
+                name = 'gc-primitives'
+                description = 'Allocation-reducing object pooling primitives for the JVM'
+                url = 'https://rainbowcrrsys.de5.net'
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'rainbowcrr-sys'
+                        name = 'rainbowcrr-sys'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:https://github.com/rainbowcrr-sys/rbc-monorepo.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/rainbowcrr-sys/rbc-monorepo.git'
+                    url = 'https://github.com/rainbowcrr-sys/rbc-monorepo'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'centralPortal'
+            url = uri('https://central.sonatype.com/repository/maven-staging/')
+            credentials {
+                username = System.getenv('CENTRAL_USERNAME') ?: findProperty('centralUsername')?.toString()
+                password = System.getenv('CENTRAL_PASSWORD') ?: findProperty('centralPassword')?.toString()
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = System.getenv('SIGNING_KEY')
+    def signingPassword = System.getenv('SIGNING_PASSWORD')
+    required { gradle.taskGraph.hasTask(':gc-primitives:publish') && signingKey != null }
+    if (signingKey != null) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+    }
+    sign publishing.publications.mavenJava
+}

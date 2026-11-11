@@ -1,0 +1,29 @@
+plugins {
+    id 'application'
+}
+
+// JMH 源码放在 src/jmh/java，作为 main 源集编译，不进入发布物
+sourceSets.main.java.srcDir 'src/jmh/java'
+
+dependencies {
+    implementation project(':gc-primitives')
+    implementation 'org.openjdk.jmh:jmh-core:1.37'
+    annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+}
+
+application {
+    mainClass = 'org.openjdk.jmh.Main'
+}
+
+tasks.register('jmh', JavaExec) {
+    group = 'benchmark'
+    description = '运行 JMH，并用 -prof gc 输出分配速率与 GC 次数'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'org.openjdk.jmh.Main'
+    args '-f', '1', '-wi', '3', '-i', '5', '-prof', 'gc'
+}
+
+tasks.named('run') {
+    // 直接 gradle :benchmarks:run --args="..." 时可自定义 JMH 参数
+    standardInput = System.in
+}

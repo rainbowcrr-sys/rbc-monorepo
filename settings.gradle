@@ -1,0 +1,3 @@
+rootProject.name = 'rbc-monorepo'
+
+include('gc-primitives', 'example', 'benchmarks')

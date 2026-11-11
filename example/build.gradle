@@ -1,0 +1,18 @@
+plugins {
+    id 'application'
+}
+
+dependencies {
+    implementation project(':gc-primitives')
+}
+
+application {
+    mainClass = 'net.de5.rainbowcrrsys.gcprimitives.example.QuickStart'
+}
+
+tasks.register('allocCheck', JavaExec) {
+    group = 'verification'
+    description = '用 ThreadMXBean 对照池化前后的已分配字节数'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'net.de5.rainbowcrrsys.gcprimitives.example.AllocQuickCheck'
+}

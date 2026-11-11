@@ -1,0 +1,17 @@
+.gradle/
+build/
+**/build/
+out/
+*.class
+*.log
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# 凭据只走 CI Secrets / 环境变量，不进仓库
+*凭据*
+*.gpg
+*.asc
+secrets/
+gradle.properties.local
