@@ -52,22 +52,31 @@ publishing {
             }
         }
     }
+    // Central Portal 不提供标准 Maven 上传端点：先发布到本地目录，再打成 bundle 走 Publisher API。
     repositories {
         maven {
-            name = 'centralPortal'
-            url = uri('https://central.sonatype.com/repository/maven-staging/')
-            credentials {
-                username = System.getenv('CENTRAL_USERNAME') ?: findProperty('centralUsername')?.toString()
-                password = System.getenv('CENTRAL_PASSWORD') ?: findProperty('centralPassword')?.toString()
-            }
+            name = 'centralStaging'
+            url = layout.buildDirectory.dir('central-staging')
         }
     }
+}
+
+// 把本地 staging 仓库打成 Central Portal 的 deployment bundle（排除 maven-metadata）
+tasks.register('bundleCentral', Zip) {
+    group = 'publishing'
+    description = '生成可上传 Central Portal 的 deployment bundle'
+    dependsOn 'publishMavenJavaPublicationToCentralStagingRepository'
+    from(layout.buildDirectory.dir('central-staging')) {
+        exclude '**/maven-metadata.xml*'
+    }
+    archiveFileName = "gc-primitives-${project.version}-bundle.zip"
+    destinationDirectory = layout.buildDirectory.dir('central-bundle')
 }
 
 signing {
     def signingKey = System.getenv('SIGNING_KEY')
     def signingPassword = System.getenv('SIGNING_PASSWORD')
-    required { gradle.taskGraph.hasTask(':gc-primitives:publish') && signingKey != null }
+    required { signingKey != null }
     if (signingKey != null) {
         useInMemoryPgpKeys(signingKey, signingPassword)
     }

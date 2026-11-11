@@ -5,6 +5,15 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      publishing_type:
+        description: 'AUTOMATIC 直接发布；USER_MANAGED 只上传，校验后到 Portal 手动点 Publish'
+        required: false
+        default: 'AUTOMATIC'
+        type: choice
+        options:
+          - AUTOMATIC
+          - USER_MANAGED
 
 jobs:
   publish:
@@ -27,11 +36,19 @@ jobs:
       - name: Build and test
         run: gradle :gc-primitives:test :example:build --no-daemon
 
-      # 发布凭据由仓库 Secrets 注入；仓库内不含任何凭据明文
-      - name: Publish to Central Portal
+      # 发布到本地 staging 目录，GPG 签名一并生成；再打成 deployment bundle
+      - name: Stage signed artifacts and build bundle
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
+        run: gradle :gc-primitives:bundleCentral --no-daemon
+
+      # 凭据全部由 Secrets 注入；仓库内不含任何凭据明文
+      - name: Upload to Central Portal
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
-          SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: gradle :gc-primitives:publish --no-daemon
+        run: |
+          bundle=(gc-primitives/build/central-bundle/*-bundle.zip)
+          bash .github/scripts/upload-central.sh "${bundle[0]}" \
+            "${{ github.event.inputs.publishing_type || 'AUTOMATIC' }}"

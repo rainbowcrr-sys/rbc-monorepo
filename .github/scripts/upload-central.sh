@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# 把 deployment bundle 上传到 Maven Central Portal，并轮询到终态。
+# 凭据只从环境变量读取，不写入任何文件、不回显。
+set -euo pipefail
+
+: "${CENTRAL_USERNAME:?CENTRAL_USERNAME 未设置（Portal User Token username）}"
+: "${CENTRAL_PASSWORD:?CENTRAL_PASSWORD 未设置（Portal User Token password）}"
+BUNDLE="${1:?用法: upload-central.sh <bundle.zip> [AUTOMATIC|USER_MANAGED]}"
+PUBLISHING_TYPE="${2:-${PUBLISHING_TYPE:-AUTOMATIC}}"
+
+case "$PUBLISHING_TYPE" in
+  AUTOMATIC|USER_MANAGED) ;;
+  *) echo "publishingType 只能是 AUTOMATIC 或 USER_MANAGED，收到: $PUBLISHING_TYPE" >&2; exit 2 ;;
+esac
+
+API="${CENTRAL_API:-https://central.sonatype.com/api/v1/publisher}"
+POLL_SECONDS="${POLL_SECONDS:-10}"
+POLLS="${POLLS:-60}"
+NAME="$(basename "$BUNDLE")"
+
+if [ ! -f "$BUNDLE" ]; then
+  echo "找不到 bundle: $BUNDLE" >&2
+  exit 2
+fi
+
+# Bearer = base64(username:password)，仅放进请求头，不打印到日志
+AUTH="$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')"
+request() {
+  curl -sS --fail-with-body --max-time 60 "$@" -H "Authorization: Bearer $AUTH"
+}
+
+echo "上传 bundle: $NAME (publishingType=$PUBLISHING_TYPE)"
+DEPLOYMENT="$(request -X POST \
+  -F "bundle=@${BUNDLE};type=application/octet-stream" \
+  "${API}/upload?publishingType=${PUBLISHING_TYPE}&name=${NAME}" | tr -d '[:space:]')"
+
+if [ -z "$DEPLOYMENT" ]; then
+  echo "上传未返回 deploymentId" >&2
+  exit 1
+fi
+echo "deploymentId: $DEPLOYMENT"
+
+STATE=""
+for i in $(seq 1 "$POLLS"); do
+  BODY="$(request -X POST "${API}/status?id=${DEPLOYMENT}")"
+  STATE="$(printf '%s' "$BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("deploymentState",""))')"
+  echo "状态 [$i/$POLLS]: ${STATE:-<空>}"
+
+  case "$STATE" in
+    PUBLISHED)
+      echo "已发布到 Maven Central"
+      printf '%s\n' "$BODY"
+      exit 0
+      ;;
+    VALIDATED)
+      if [ "$PUBLISHING_TYPE" = "AUTOMATIC" ]; then
+        echo "AUTOMATIC 模式下 VALIDATED 后应自动进入 PUBLISHING，继续等待"
+      else
+        echo "校验通过（VALIDATED）。请到 https://central.sonatype.com/publishing/deployments 点 Publish"
+        printf '%s\n' "$BODY"
+        exit 0
+      fi
+      ;;
+    FAILED)
+      echo "部署校验失败：" >&2
+      printf '%s\n' "$BODY" >&2
+      exit 1
+      ;;
+    PENDING|VALIDATING|PUBLISHING)
+      ;;
+    *)
+      echo "无法识别的状态，原始响应：" >&2
+      printf '%s\n' "$BODY" >&2
+      exit 1
+      ;;
+  esac
+  sleep "$POLL_SECONDS"
+done
+
+echo "等待超时（最后一次状态: ${STATE:-<空>}），deploymentId=$DEPLOYMENT" >&2
+exit 1

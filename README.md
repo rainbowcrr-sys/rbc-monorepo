@@ -122,18 +122,61 @@ gradle :example:allocCheck
 
 ## 发布到 Maven Central
 
-1. 在 Central Portal 申请 namespace `net.de5.rainbowcrrsys`，按其给出的值在 `rainbowcrrsys.de5.net` 添加一条 DNS TXT 记录完成归属验证。
-2. 在仓库 Secrets 中配置：`CENTRAL_USERNAME`、`CENTRAL_PASSWORD`（Portal user token）、`SIGNING_KEY`（PGP 私钥 ASCII 文本）、`SIGNING_PASSWORD`（私钥口令）。发布凭据只走 Secrets / 环境变量，不写入仓库文件。
-3. 打 tag 推送，自动触发发布工作流：
+走 **Central Portal Publisher API**：Gradle 先把带 GPG 签名的产物发布到本地 `build/central-staging/`，打包成 `*-bundle.zip`，再由 `upload-central.sh` 以 `multipart/form-data` POST 到 `/api/v1/publisher/upload`，最后轮询 `/api/v1/publisher/status` 到终态。Portal 没有标准的 Maven 上传端点，所以不能用 `maven-publish` 直连。
+
+### 一次性准备（这四步只能在网页/本机做）
+
+**1. 验证 namespace**
+
+登录 https://central.sonatype.com → Namespaces → Add Namespace，填 `net.de5.rainbowcrrsys`，复制给出的 Verification Key，在域名 `rainbowcrrsys.de5.net` 上加一条 TXT 记录（值就是那串 Key），回 Portal 点 Verify，状态变 `Verified`。注意校验读的是**这个域名本身**的 TXT，不是 `de5.net` 根域。
+
+> 如果 `de5.net` 的 DNS 不由你控制、加不了 TXT，这条路走不通：把 groupId 改成 `io.github.rainbowcrr-sys`（Portal 里靠建一个指定名字的临时公开仓库验证，不需要域名），同步改 `build.gradle` 的 `group` 和 Java 包名即可。
+
+**2. 生成 User Token**
+
+Portal → 右上角账号 → View Account → Generate User Token，得到一组 username / password。弹窗关掉后不再完整显示，立刻存好。这不是你的登录密码。API 细节见 [Portal Publisher API 文档](https://central.sonatype.org/publish/publish-portal-api/)。
+
+**3. 生成 GPG 密钥并上传公钥**
+
+Central 要求每个产物都有 `.asc` 签名，且公钥必须在公共 keyserver 上。
+
+```bash
+gpg --full-generate-key                       # RSA 4096，邮箱用你能收信的
+gpg --list-secret-keys --keyid-format=long
+gpg --keyserver keyserver.ubuntu.com --send-keys <长KEYID>   # 或 keys.openpgp.org / pgp.mit.edu
+gpg --armor --export-secret-keys <长KEYID> > private-key.asc  # 全文含 BEGIN/END 行，用完删掉
+```
+
+**4. 配 GitHub Secrets**
+
+仓库 Settings → Secrets and variables → Actions，新增 4 条：
+
+| Secret | 值 |
+| --- | --- |
+| `CENTRAL_USERNAME` | 第 2 步的 token username |
+| `CENTRAL_PASSWORD` | 第 2 步的 token password |
+| `SIGNING_KEY` | `private-key.asc` 全文 |
+| `SIGNING_PASSWORD` | 该私钥口令 |
+
+凭据只走 Secrets / 环境变量，不写进仓库任何文件。
+
+### 发版
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-也可以在 Actions 里手动 `workflow_dispatch` 触发。工作流会先跑测试与示例构建，再执行 `:gc-primitives:publish` 上传到 Central Portal 的 staging 端点。
+也可以在 Actions 里手动 `workflow_dispatch` 触发，并选 `publishing_type`：
 
-POM 里的仓库地址目前按 `rbc-monorepo` 命名，如实际仓库名不同，改 `gc-primitives/build.gradle` 中的 `scm` 段即可。
+- `AUTOMATIC`（默认）：校验通过即自动发布到 Maven Central，打完 tag 不用再管
+- `USER_MANAGED`：只上传，状态停在 `VALIDATED`，到 https://central.sonatype.com/publishing/deployments 人工点 Publish
+
+工作流会先跑测试与示例构建，再执行 `:gc-primitives:bundleCentral`（产出 jar / sources / javadoc / pom + 每个的 `.asc` 与校验和），最后上传并轮询状态；`FAILED` 会打印 Portal 的错误详情并让任务失败。**已发布的版本永久不可删除或覆盖**，首次发版建议先用 `USER_MANAGED` 看一眼。
+
+发布成功后到 https://central.sonatype.com/artifact/net.de5.rainbowcrrsys/gc-primitives 查看，同步到 `repo1.maven.org` 约 30 分钟，搜索索引可能再晚几小时。
+
+POM 里的仓库地址按 `rbc-monorepo` 命名，如实际仓库名不同，改 `gc-primitives/build.gradle` 的 `scm` 段即可。
 
 ## 路线图
 
