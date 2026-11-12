@@ -1,3 +1,9 @@
 rootProject.name = 'rbc-monorepo'
 
-include('gc-primitives', 'example', 'benchmarks')
+// 顶层按语言分目录，内层按项目分目录；Gradle 模块路径与目录结构一致。
+// 新增项目时在对应语言目录下追加 include 与 projectDir 即可。
+include(':java:gc-primitives', ':java:example', ':java:benchmarks')
+
+project(':java:gc-primitives').projectDir = file('java/gc-primitives')
+project(':java:example').projectDir = file('java/example')
+project(':java:benchmarks').projectDir = file('java/benchmarks')

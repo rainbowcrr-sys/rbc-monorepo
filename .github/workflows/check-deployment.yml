@@ -7,6 +7,11 @@ on:
         description: 'Central Portal deploymentId'
         required: true
         type: string
+      version:
+        description: '要探测的已发布版本'
+        required: false
+        default: '0.1.1'
+        type: string
 
 jobs:
   check:
@@ -18,6 +23,7 @@ jobs:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+          VERSION: ${{ inputs.version }}
         run: |
           AUTH="$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')"
           BODY="$(curl -sS --max-time 60 -X POST -H "Authorization: Bearer $AUTH" \
@@ -26,5 +32,5 @@ jobs:
           STATE="$(printf '%s' "$BODY" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("deploymentState",""))')"
           echo "::notice title=deploymentState::$STATE"
           CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
-            https://repo1.maven.org/maven2/net/de5/rainbowcrrsys/gc-primitives/0.1.0/gc-primitives-0.1.0.pom)"
+            "https://repo1.maven.org/maven2/net/de5/rainbowcrrsys/gc-primitives/${VERSION}/gc-primitives-${VERSION}.pom")"
           echo "::notice title=Maven Central pom HTTP::$CODE"

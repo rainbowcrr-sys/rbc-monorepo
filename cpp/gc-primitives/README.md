@@ -2,7 +2,9 @@
 
 > 中文 · [English](README.en.md)
 
-与 Java 版同一套概念契约的 C++17 移植，行为规范见仓库根 [SPEC.md](../SPEC.md)（[English](../SPEC.en.md)）。
+> 目录：`cpp/gc-primitives/`（顶层按语言、内层按项目）。
+
+与 Java 版同一套概念契约的 C++17 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md)（[English](../../SPEC.en.md)）。
 
 > C++ 没有 GC，这里的收益是**更少的 `malloc`/`free` 与更好的缓存局部性**，不叫「省 GC」。
 
@@ -79,25 +81,25 @@ auto lease = ints.borrow();
 ## 构建与验证
 
 ```bash
-cmake -S cpp -B cpp/build -DGC_PRIMITIVES_BUILD_BENCH=OFF
-cmake --build cpp/build
-ctest --test-dir cpp/build --output-on-failure
+cmake -S cpp/gc-primitives -B cpp/gc-primitives/build -DGC_PRIMITIVES_BUILD_BENCH=OFF
+cmake --build cpp/gc-primitives/build
+ctest --test-dir cpp/gc-primitives/build --output-on-failure
 ```
 
 不装 CMake 也能直接验：
 
 ```bash
 g++ -std=c++17 -Wall -Wextra -Wpedantic -pthread \
-    -I cpp/include cpp/tests/contract_test.cpp -o /tmp/contract_test
+    -I cpp/gc-primitives/include cpp/gc-primitives/tests/contract_test.cpp -o /tmp/contract_test
 /tmp/contract_test     # 末行输出 contract_test OK
 ```
 
 Google Benchmark（需先装 `benchmark`，CMake 找不到会自动跳过，不影响库本体）：
 
 ```bash
-cmake -S cpp -B cpp/build -DGC_PRIMITIVES_BUILD_BENCH=ON
-cmake --build cpp/build --target allocation_bench
-./cpp/build/allocation_bench --benchmark_min_time=1s
+cmake -S cpp/gc-primitives -B cpp/gc-primitives/build -DGC_PRIMITIVES_BUILD_BENCH=ON
+cmake --build cpp/gc-primitives/build --target allocation_bench
+./cpp/gc-primitives/build/allocation_bench --benchmark_min_time=1s
 ```
 
 基准结果写在本 README 的 Release Notes，**不写进 SPEC**——SPEC 只定行为契约，不绑死性能数字。

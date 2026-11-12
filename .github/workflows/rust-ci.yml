@@ -1,0 +1,64 @@
+name: Rust CI
+
+# Rust 版在真实工具链上验证：MSRV 1.70 与 stable 两套，测试 / doctest / clippy / fmt 全跑。
+on:
+  push:
+    paths:
+      - 'rust/**'
+      - '.github/workflows/rust-ci.yml'
+  pull_request:
+    paths:
+      - 'rust/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  msrv:
+    name: MSRV 1.70 (tests + doctests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.70
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.70.0'
+
+      - name: Print toolchain
+        working-directory: rust/gc-primitives
+        run: rustc --version && cargo --version
+
+      - name: Unit + integration tests
+        working-directory: rust/gc-primitives
+        run: cargo test --all-targets
+
+      - name: Doctests
+        working-directory: rust/gc-primitives
+        run: cargo test --doc
+
+  stable:
+    name: stable (tests + clippy + fmt)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable with clippy & rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Full test suite
+        working-directory: rust/gc-primitives
+        run: cargo test
+
+      - name: Clippy (warnings are errors)
+        working-directory: rust/gc-primitives
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: rustfmt check
+        working-directory: rust/gc-primitives
+        run: cargo fmt -- --check

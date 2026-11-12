@@ -2,7 +2,9 @@
 
 > [中文](README.md) · English
 
-A C++17 port of the same conceptual contract as the Java version. See the repository-root [SPEC.en.md](../SPEC.en.md) ([中文](../SPEC.md)) for the behavioral specification.
+> Directory: `cpp/gc-primitives/` (top level by language, inner level by project).
+
+A C++17 port of the same conceptual contract as the Java version. See the repository-root [SPEC.en.md](../../SPEC.en.md) ([中文](../../SPEC.md)) for the behavioral specification.
 
 > C++ has no GC. The benefit here is **fewer `malloc`/`free` calls and better cache locality** — not "saving GC".
 
@@ -79,25 +81,25 @@ Counters are precise global `std::atomic` values, accepting one atomic add per b
 ## Build and Verify
 
 ```bash
-cmake -S cpp -B cpp/build -DGC_PRIMITIVES_BUILD_BENCH=OFF
-cmake --build cpp/build
-ctest --test-dir cpp/build --output-on-failure
+cmake -S cpp/gc-primitives -B cpp/gc-primitives/build -DGC_PRIMITIVES_BUILD_BENCH=OFF
+cmake --build cpp/gc-primitives/build
+ctest --test-dir cpp/gc-primitives/build --output-on-failure
 ```
 
 Without CMake, you can verify directly:
 
 ```bash
 g++ -std=c++17 -Wall -Wextra -Wpedantic -pthread \
-    -I cpp/include cpp/tests/contract_test.cpp -o /tmp/contract_test
+    -I cpp/gc-primitives/include cpp/gc-primitives/tests/contract_test.cpp -o /tmp/contract_test
 /tmp/contract_test     # prints contract_test OK on the last line
 ```
 
 Google Benchmark (requires `benchmark` installed; CMake skips it automatically if missing, without affecting the library):
 
 ```bash
-cmake -S cpp -B cpp/build -DGC_PRIMITIVES_BUILD_BENCH=ON
-cmake --build cpp/build --target allocation_bench
-./cpp/build/allocation_bench --benchmark_min_time=1s
+cmake -S cpp/gc-primitives -B cpp/gc-primitives/build -DGC_PRIMITIVES_BUILD_BENCH=ON
+cmake --build cpp/gc-primitives/build --target allocation_bench
+./cpp/gc-primitives/build/allocation_bench --benchmark_min_time=1s
 ```
 
 Benchmark results belong in this README's Release Notes, **not in the SPEC** — the SPEC defines behavior only and does not hard-code performance numbers.

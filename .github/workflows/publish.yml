@@ -1,11 +1,11 @@
 name: Publish to Maven Central
 
 on:
-  # 多语言共用仓库，tag 按语言分前缀；Java 版只认 java-v*，
-  # 避免 Python/C++ 发版时误触发 Maven Central 重复上传 0.1.0。
+  # tag 格式：gc-primitives__java__v<版本>
+  # 库名带连字符，用双下划线分隔避免切分歧义；旧 tag java-v* 已退役。
   push:
     tags:
-      - 'java-v*'
+      - 'gc-primitives__java__v*'
   workflow_dispatch:
     inputs:
       publishing_type:
@@ -35,8 +35,36 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Verify tag version matches Gradle metadata
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+
+          props = pathlib.Path('gradle.properties').read_text(encoding='utf-8')
+          build = pathlib.Path('build.gradle').read_text(encoding='utf-8')
+          p = re.search(r'^version=([^\s]+)', props, re.M).group(1)
+          b = re.search(r"version\s*=\s*'([^']+)'", build).group(1)
+          print('gradle.properties:', p)
+          print('build.gradle     :', b)
+          if p != b:
+              raise SystemExit('两处 Gradle 版本不一致，拒绝发版')
+
+          tag = os.environ.get('TAG_NAME', '')
+          prefix = 'gc-primitives__java__v'
+          if os.environ.get('EVENT_NAME') == 'push' and tag.startswith(prefix):
+              tag_version = tag[len(prefix):]
+              print('tag              :', tag_version)
+              if tag_version != p:
+                  raise SystemExit(f'tag {tag} 与 Gradle 版本 {p} 不一致，拒绝发布')
+          else:
+              print('手动触发：跳过 tag 比对，使用 Gradle 声明版本', p)
+          PY
+
       - name: Build and test
-        run: gradle :gc-primitives:test :example:build --no-daemon
+        run: gradle :java:gc-primitives:test :java:example:build --no-daemon
 
       # 发布到本地 staging 目录，GPG 签名一并生成；再打成 deployment bundle
       - name: Stage signed artifacts and build bundle
@@ -44,8 +72,8 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          gradle :gc-primitives:bundleCentral --no-daemon
-          bundle=(gc-primitives/build/central-bundle/*-bundle.zip)
+          gradle :java:gc-primitives:bundleCentral --no-daemon
+          bundle=(java/gc-primitives/build/central-bundle/*-bundle.zip)
           files=$(unzip -Z1 "${bundle[0]}" | tr '\n' ' ')
           echo "::notice title=Bundle 文件清单::$files"
 
@@ -55,6 +83,6 @@ jobs:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
         run: |
-          bundle=(gc-primitives/build/central-bundle/*-bundle.zip)
+          bundle=(java/gc-primitives/build/central-bundle/*-bundle.zip)
           bash .github/scripts/upload-central.sh "${bundle[0]}" \
             "${{ github.event.inputs.publishing_type || 'AUTOMATIC' }}"

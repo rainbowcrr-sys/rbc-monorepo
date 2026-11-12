@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    implementation project(':gc-primitives')
+    implementation project(':java:gc-primitives')
 }
 
 application {

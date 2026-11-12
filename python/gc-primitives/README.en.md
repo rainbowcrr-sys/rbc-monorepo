@@ -2,7 +2,9 @@
 
 > [中文](README.md) · English
 
-A pure-Python semantic port of the same conceptual contract as the Java / C++ versions. See the repository-root [SPEC.en.md](../SPEC.en.md) ([中文](../SPEC.md)) for the behavioral specification.
+> Directory: `python/gc-primitives/` (top level by language, inner level by project).
+
+A pure-Python semantic port of the same conceptual contract as the Java / C++ versions. See the repository-root [SPEC.en.md](../../SPEC.en.md) ([中文](../../SPEC.md)) for the behavioral specification.
 
 > **No performance promise.** This port exists for cross-language contract consistency, clear semantics, and teaching/comparison — not for being "faster than the interpreter". The reason is below.
 
@@ -63,7 +65,7 @@ pool = Pool(object, noop_recycler)   # the recycler argument can also be omitted
 Standard-library `unittest` only — no dependencies to install:
 
 ```bash
-python3 -m unittest discover -s python/tests -v
+python3 -m unittest discover -s python/gc-primitives/tests -v
 ```
 
 14 contract tests correspond item by item to the Java / C++ versions, with extra coverage for "return still happens when the `with` body raises" and "reset failure discards the object".
@@ -79,7 +81,7 @@ pip install gc-primitives
 Building:
 
 ```bash
-cd python && python3 -m build
+cd python/gc-primitives && python3 -m build
 ```
 
 The version is independent from Java / C++ and is not locked to the published Java `0.1.0`.

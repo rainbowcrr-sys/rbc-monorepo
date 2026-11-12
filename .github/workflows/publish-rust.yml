@@ -1,0 +1,66 @@
+name: Publish Rust to crates.io
+
+# tag 格式：gc-primitives__rust__v<版本>
+# 用 crates.io Trusted Publishing（OIDC）换临时上传凭证，仓库里不放任何长期 API Token。
+on:
+  push:
+    tags:
+      - 'gc-primitives__rust__v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Verify and publish
+    runs-on: ubuntu-latest
+    environment:
+      name: crates-io
+      url: https://crates.io/crates/gc-primitives
+    permissions:
+      # OIDC 必需；不使用 CARGO_REGISTRY_TOKEN 长效密钥
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag version matches Cargo.toml
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+
+          text = pathlib.Path('rust/gc-primitives/Cargo.toml').read_text(encoding='utf-8')
+          version = re.search(r'^version\s*=\s*"([^"]+)"', text, re.M).group(1)
+          print('Cargo.toml version:', version)
+
+          tag = os.environ.get('TAG_NAME', '')
+          prefix = 'gc-primitives__rust__v'
+          if os.environ.get('EVENT_NAME') == 'push' and tag.startswith(prefix):
+              tag_version = tag[len(prefix):]
+              print('tag version      :', tag_version)
+              if tag_version != version:
+                  raise SystemExit(f'tag {tag} 与 Cargo.toml 版本 {version} 不一致，拒绝发布')
+          else:
+              print('手动触发：跳过 tag 比对，使用 Cargo.toml 声明版本', version)
+          PY
+
+      - name: Run tests before publishing
+        working-directory: rust/gc-primitives
+        run: cargo test --all-targets
+
+      - name: Exchange OIDC token for crates.io credential
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish to crates.io
+        working-directory: rust/gc-primitives
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish

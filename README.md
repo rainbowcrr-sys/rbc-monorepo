@@ -2,29 +2,53 @@
 
 > 中文 · [English](README.en.md)
 
-减少分配与复用的对象池原语库，**同一套概念契约的 Java / C++ / Python 实现**。不绑定业务场景，由调用方自行决定延迟与吞吐的取舍。
+减少分配与复用的对象池原语库，**同一套概念契约的 Java / C++ / Python / Rust 实现**。不绑定业务场景，由调用方自行决定延迟与吞吐的取舍。
 
-首个版本 `0.1.0` 只做一件事：把「对象池 + 复用上下文」做成一组可组合的原语。
+首个版本只做一件事：把「对象池 + 复用上下文」做成一组可组合的原语。行为对照与逐条映射见 **[SPEC.md](SPEC.md)**（[English](SPEC.en.md)）。
 
-## 三语言实现
+## 四语言实现
 
-三语言**同一套概念契约移植**，行为对照与逐条映射见 **[SPEC.md](SPEC.md)**（[English](SPEC.en.md)）。
-
-| 语言 | 目录 | 导入 | 分发 | 状态 |
+| 语言 | 项目目录 | 导入 | 分发 | 状态 |
 | --- | --- | --- | --- | --- |
-| Java 11 | [`gc-primitives/`](gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives:0.1.0` | Maven Central | ✅ 已发布 |
-| C++17 | [`cpp/`](cpp/) | `#include <rbc/gc.hpp>`（header-only） | vcpkg / Conan | ✅ 实现完成 |
-| Python 3.9+ | [`python/`](python/) | `from gc_primitives import Pool` | PyPI | ✅ 实现完成 |
+| Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` 已发布，`0.1.1` 为纯工程重构版 |
+| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>`（header-only） | GitHub Release / vcpkg / Conan | ✅ `0.1.0` 已发 Release |
+| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` 已发布 |
+| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | 实现完成，首发待 OIDC 登记 |
 
-三语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 少 `malloc`/`free`、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/README.md`](python/README.md)）。
+四语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 与 Rust 少堆分配、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/gc-primitives/README.md`](python/gc-primitives/README.md)）。Rust 版额外承诺 **零 `unsafe`、零依赖**。
 
-以下为 **Java 版**文档；C++ 与 Python 的用法见各自 README。仓库内所有 Markdown 均有中文版与英文版，文件名以 `.en.md` 结尾的是英文版。
+以下为 **Java 版**文档；C++ / Python / Rust 的用法见各自 README。仓库内每个 Markdown 都有中文版与英文版，英文版文件名以 `.en.md` 结尾。
 
-## 导入
+## 仓库结构约定
+
+顶层按**语言**分，内层按**项目**分；新增项目不用建新仓库：
+
+```
+java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/
+java/example/           java/benchmarks/       （Java 侧兄弟模块，不进发布物）
+java/test/              cpp/test/              python/test/             rust/test/   ← 以后新项目示例
+```
+
+根只留 README、SPEC、LICENSE、`.github/`、`.gitignore` 与 Gradle 根配置（`build.gradle` / `settings.gradle` / `gradle.properties`）。新项目 `test` 就是往各语言目录下加一层，Gradle 在 `settings.gradle` 里追加 `include(':java:test')` 与 `projectDir`。
+
+## tag 约定
+
+库名 `gc-primitives` 自带连字符，用**双下划线**分隔避免切分歧义：
+
+| 语言 | tag 格式 | 工作流 | 示例 |
+| --- | --- | --- | --- |
+| Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.1.1` |
+| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.2.0` |
+| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
+| Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
+
+四条规则都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
+
+## 导入（Java）
 
 ```groovy
 // Gradle
-implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.0'
+implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.1'
 ```
 
 ```xml
@@ -32,11 +56,11 @@ implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.0'
 <dependency>
   <groupId>net.de5.rainbowcrrsys</groupId>
   <artifactId>gc-primitives</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
 </dependency>
 ```
 
-基线：Java 11。许可证：Apache-2.0。
+基线：Java 11。`0.1.1` 是纯工程重构版（目录与 Gradle 路径调整），**jar 内的 class 与 `0.1.0` 完全一致**；`0.1.0` 也仍可导入。许可证：Apache-2.0。
 
 ## Quick Start
 
@@ -53,7 +77,7 @@ try (Lease<StringBuilder> lease = pool.borrow()) {
 } // 自动归还，Recycler 在这里把 sb 清空
 ```
 
-`gc-primitives` 发布的只有一个 jar；`example` 是可运行示例，`benchmarks` 是 JMH 基准，两者都不进发布物。
+`gc-primitives` 发布的只有一个 jar；`java/example` 是可运行示例，`java/benchmarks` 是 JMH 基准，两者都不进发布物。
 
 ## API 契约
 
@@ -66,52 +90,24 @@ try (Lease<StringBuilder> lease = pool.borrow()) {
 
 实现策略：**线程本地 + 有界**。借还无锁、无跨线程同步；命中空闲槽时不分配对象，连 `Lease` 句柄本身也从线程本地栈复用，正常路径接近零分配。每线程最多保留 `capacity` 个空闲对象（默认 64），超出的归还对象直接丢弃。
 
-误用**始终强制校验**，立即抛 `PoolStateException`：
-
-- 双重归还 / 关闭后 `get()`
-- 跨线程归还 / 跨线程取用
-- `factory` 返回 `null`
-- `capacity <= 0` 抛 `IllegalArgumentException`
+误用**始终强制校验**，立即抛 `PoolStateException`：双重归还 / 关闭后 `get()`、跨线程归还 / 跨线程取用、`factory` 返回 `null`；`capacity <= 0` 抛 `IllegalArgumentException`。
 
 未归还的租约由 `activeLeases()` 精确计数，测试期用 `assertNoActiveLeases()` 把泄漏直接变成失败。
 
-**使用契约**：租约与借出的对象只归借用线程使用；关闭之后不得再持有该对象引用。这两点由调用方保证，库无法在运行时替你拦截「归还后仍被外部引用」的情况。
-
-## 仓库结构
-
-```
-rbc-monorepo/
-├── gc-primitives/          主库，单 jar，按 pool/lease/recycler 语义分包
-│   ├── src/main/java/net/de5/rainbowcrrsys/gcprimitives/
-│   └── src/test/java/...  JUnit 5
-├── example/                可运行示例 + 九项契约自测
-├── benchmarks/             JMH 基准（独立模块）
-├── cpp/                    C++17 header-only 实现
-├── python/                 Python 3.9+ 语义移植
-├── .github/workflows/      CI 工作流
-├── SPEC.md / SPEC.en.md    跨语言契约规范（中 / 英）
-├── LICENSE                 Apache-2.0
-└── build.gradle / settings.gradle / gradle.properties
-```
-
-后续新库在同一命名空间下以 `rbc-` 前缀追加模块，`gc-primitives` 名称保留不变。
+**使用契约**：租约与借出的对象只归借用线程使用；关闭之后不得再持有该对象引用。这两点由调用方保证。Rust 版靠回调闭包让这类误用在编译期就不可能发生，见 `SPEC.md` 第 8.1 节。
 
 ## 本地构建
 
-环境需要 **Gradle 8.10.2**（用 Java 11 运行）。仓库不附带 wrapper jar，如需 `./gradlew` 可先执行一次：
+环境需要 **Gradle 8.10.2**（用 Java 11 运行）。仓库不附带 wrapper jar，如需 `./gradlew` 可先执行一次 `gradle wrapper --gradle-version 8.10.2`。
+
+常用命令（模块路径已随目录改为 `:java:*`）：
 
 ```bash
-gradle wrapper --gradle-version 8.10.2
-```
-
-常用命令：
-
-```bash
-gradle :gc-primitives:test          # 单元测试
-gradle :example:run                # 运行示例与契约自测，末行输出 QuickStart OK
-gradle :example:allocCheck         # 分配字节数快检
-gradle :benchmarks:jmh             # JMH + -prof gc
-gradle :gc-primitives:build        # jar / sourcesJar / javadocJar
+gradle :java:gc-primitives:test          # 单元测试
+gradle :java:example:run                 # 运行示例与契约自测，末行输出 QuickStart OK
+gradle :java:example:allocCheck          # 分配字节数快检
+gradle :java:benchmarks:jmh              # JMH + -prof gc
+gradle :java:gc-primitives:build         # jar / sourcesJar / javadocJar
 ```
 
 ## 验证「真的省了 GC」
@@ -119,25 +115,14 @@ gradle :gc-primitives:build        # jar / sourcesJar / javadocJar
 基准对照 `allocateFresh`（每次 `new StringBuilder`）与 `borrowPooled`（池化借用），用 JMH 的 `-prof gc` 输出分配速率与 GC 次数：
 
 ```bash
-gradle :benchmarks:jmh
+gradle :java:benchmarks:jmh
 # 或自定义参数
-gradle :benchmarks:run --args="AllocationBenchmark -f 1 -wi 3 -i 5 -prof gc"
+gradle :java:benchmarks:run --args="AllocationBenchmark -f 1 -wi 3 -i 5 -prof gc"
 ```
 
-不跑 JMH 也可以先用 `ThreadMXBean` 做一次分配字节数快检：
+不跑 JMH 也可以先用 `ThreadMXBean` 做一次分配字节数快检：`gradle :java:example:allocCheck`。
 
-```bash
-gradle :example:allocCheck
-```
-
-本机 Java 11 实测（N = 1,000,000 次，预热 3 轮）：
-
-| 路径 | 已分配字节 | 构成 |
-| --- | --- | --- |
-| 每次 `new StringBuilder` | 约 106.8 MB | StringBuilder + 内部缓冲 + 结果 String |
-| 池化借用 | 约 53.4 MB | 只剩 `toString()` 产出的结果 String |
-
-池化把对象本身与其内部缓冲的分配整段消掉，分配量降到约 50%；剩下的部分属于业务返回值，不是池该优化的范围。正式结论仍以 `-prof gc` 的 `gc.alloc.rate` / `gc.count` 为准，发布前把一组基线结果记入 Release Notes，让每个版本的效果可对照。
+本机 Java 11 实测（N = 1,000,000 次，预热 3 轮）：每次 `new StringBuilder` 约 106.8 MB，池化借用约 53.4 MB（只剩 `toString()` 产生的结果 String）。池化把对象本身与其内部缓冲的分配整段消掉，分配量降到约 50%。正式结论以 `-prof gc` 的 `gc.alloc.rate` / `gc.count` 为准。
 
 ## 路线图
 

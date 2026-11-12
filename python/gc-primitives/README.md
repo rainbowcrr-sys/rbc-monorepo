@@ -2,7 +2,9 @@
 
 > 中文 · [English](README.en.md)
 
-与 Java / C++ 版同一套概念契约的纯 Python 语义移植，行为规范见仓库根 [SPEC.md](../SPEC.md)（[English](../SPEC.en.md)）。
+> 目录：`python/gc-primitives/`（顶层按语言、内层按项目）。
+
+与 Java / C++ 版同一套概念契约的纯 Python 语义移植，行为规范见仓库根 [SPEC.md](../../SPEC.md)（[English](../../SPEC.en.md)）。
 
 > **不承诺性能收益。** 这一版的定位是跨语言契约一致性、语义清晰与教学对照，
 > 不是「比解释器快」。原因见下。
@@ -70,7 +72,7 @@ pool = Pool(object, noop_recycler)   # 也可直接省略 recycler 参数
 只用标准库 `unittest`，无需安装任何依赖：
 
 ```bash
-python3 -m unittest discover -s python/tests -v
+python3 -m unittest discover -s python/gc-primitives/tests -v
 ```
 
 14 项契约测试与 Java / C++ 版逐条对应，额外覆盖 `with` 体内抛异常仍归还、复位失败丢弃对象。
@@ -86,7 +88,7 @@ pip install gc-primitives
 打包：
 
 ```bash
-cd python && python3 -m build
+cd python/gc-primitives && python3 -m build
 ```
 
 版本与 Java / C++ 各自独立，不被已发布的 Java `0.1.0` 锁住。

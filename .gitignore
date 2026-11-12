@@ -11,12 +11,13 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .python-version
-python/build/
-python/dist/
+**/dist/
+python/**/build/
 
-# C++
-cpp/build/
+# C++ / Rust
+cpp/**/build/
 cmake-build-*/
+rust/**/target/
 .idea/
 *.iml
 .vscode/

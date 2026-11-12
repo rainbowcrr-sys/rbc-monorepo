@@ -1,10 +1,11 @@
 name: Publish Python to PyPI
 
-# 多语言共用仓库：Python 版只认 py-v* tag，不碰 Java 的 java-v* / C++ 的 cpp-v*。
+# tag 格式：gc-primitives__python__v<版本>
+# 项目目录为 python/gc-primitives/（顶层按语言、内层按项目）。
 on:
   push:
     tags:
-      - 'py-v*'
+      - 'gc-primitives__python__v*'
   workflow_dispatch:
 
 jobs:
@@ -24,7 +25,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      # 防止「tag 写 py-v0.2.0 但包里还是 0.1.0」导致 PyPI 重复上传旧版本
+      # 防止「tag 写新版本但包里还是旧版本」导致 PyPI 重复上传
       - name: Verify tag version matches package metadata
         env:
           TAG_NAME: ${{ github.ref_name }}
@@ -33,9 +34,9 @@ jobs:
           python3 - <<'PY'
           import os, pathlib, re, tomllib
 
-          pyproject = tomllib.loads(pathlib.Path('python/pyproject.toml').read_text(encoding='utf-8'))
-          declared = pyproject['project']['version']
-          init = pathlib.Path('python/gc_primitives/__init__.py').read_text(encoding='utf-8')
+          base = pathlib.Path('python/gc-primitives')
+          declared = tomllib.loads((base / 'pyproject.toml').read_text(encoding='utf-8'))['project']['version']
+          init = (base / 'gc_primitives/__init__.py').read_text(encoding='utf-8')
           m = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', init)
           init_version = m.group(1) if m else None
 
@@ -45,9 +46,9 @@ jobs:
               raise SystemExit('版本不一致：pyproject.toml 与 __init__.py 必须同步改')
 
           tag = os.environ.get('TAG_NAME', '')
-          event = os.environ.get('EVENT_NAME', '')
-          if event == 'push' and tag.startswith('py-v'):
-              tag_version = tag[len('py-v'):]
+          prefix = 'gc-primitives__python__v'
+          if os.environ.get('EVENT_NAME') == 'push' and tag.startswith(prefix):
+              tag_version = tag[len(prefix):]
               print(f'tag                : {tag_version}')
               if tag_version != declared:
                   raise SystemExit(f'tag {tag} 与包版本 {declared} 不一致，拒绝发布')
@@ -59,21 +60,21 @@ jobs:
         run: python -m pip install --upgrade build twine
 
       - name: Run contract tests
-        run: python3 -m unittest discover -s python/tests -v
+        run: python3 -m unittest discover -s python/gc-primitives/tests -v
 
       - name: Build wheel and sdist
-        working-directory: python
+        working-directory: python/gc-primitives
         run: python -m build
 
       - name: Check distributions render correctly
-        working-directory: python
+        working-directory: python/gc-primitives
         run: python -m twine check dist/*
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: python/dist/
+          path: python/gc-primitives/dist/
           if-no-files-found: error
 
   publish:

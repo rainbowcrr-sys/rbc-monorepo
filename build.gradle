@@ -1,7 +1,7 @@
 // 单仓多模块：主库 gc-primitives 单 jar 发布；example 与 benchmarks 为兄弟模块，不进发布物。
 allprojects {
     group = 'net.de5.rainbowcrrsys'
-    version = '0.1.0'
+    version = '0.1.1'
 
     repositories {
         mavenCentral()

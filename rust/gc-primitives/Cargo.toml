@@ -1,0 +1,18 @@
+[package]
+name = "gc-primitives"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+license = "Apache-2.0"
+description = "Allocation-reducing object pooling primitives with compile-time-safe leases (zero unsafe, zero dependencies)"
+repository = "https://github.com/rainbowcrr-sys/rbc-monorepo"
+homepage = "https://github.com/rainbowcrr-sys/rbc-monorepo"
+readme = "README.md"
+keywords = ["object-pool", "allocation", "lease", "no-unsafe", "thread-local"]
+categories = ["memory-management"]
+
+[lib]
+name = "gc_primitives"
+path = "src/lib.rs"
+
+[dependencies]
