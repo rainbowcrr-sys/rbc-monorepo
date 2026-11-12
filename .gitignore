@@ -5,6 +5,18 @@ out/
 *.class
 *.log
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.python-version
+python/build/
+python/dist/
+
+# C++
+cpp/build/
+cmake-build-*/
 .idea/
 *.iml
 .vscode/

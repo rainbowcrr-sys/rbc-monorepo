@@ -1,0 +1,9 @@
+{
+  "name": "gc-primitives",
+  "version-string": "0.1.0",
+  "description": "Allocation-reducing object pooling primitives for C++17 (header-only)",
+  "homepage": "https://github.com/rainbowcrr-sys/rbc-monorepo",
+  "license": "Apache-2.0",
+  "supports": "!(uwp | xbox)",
+  "dependencies": []
+}

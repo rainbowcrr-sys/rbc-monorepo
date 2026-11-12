@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gc-primitives"
+version = "0.1.0"
+description = "Allocation-reducing object pooling primitives (Python semantic port of the cross-language spec)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+authors = [{ name = "rainbowcrr-sys", email = "rainbowcrr.sys@gmail.com" }]
+keywords = ["object-pool", "allocation", "zero-dependency", "gc-primitives"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/rainbowcrr-sys/rbc-monorepo"
+Repository = "https://github.com/rainbowcrr-sys/rbc-monorepo"
+Specification = "https://github.com/rainbowcrr-sys/rbc-monorepo/blob/main/SPEC.md"
+
+[tool.setuptools]
+packages = ["gc_primitives"]
+license-files = ["LICENSE"]

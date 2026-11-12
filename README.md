@@ -1,8 +1,22 @@
 # gc-primitives
 
-减少分配与复用的 Java 原语库。**纯 API，零 JVM 启动参数，运行时只依赖 JDK**，不绑定业务场景，由调用方自行决定延迟与吞吐的取舍。
+减少分配与复用的对象池原语库，**同一套概念契约的 Java / C++ / Python 实现**。不绑定业务场景，由调用方自行决定延迟与吞吐的取舍。
 
 首个版本 `0.1.0` 只做一件事：把「对象池 + 复用上下文」做成一组可组合的原语。
+
+## 三语言实现
+
+三语言**同一套概念契约移植**，行为对照与逐条映射见 **[SPEC.md](SPEC.md)**。
+
+| 语言 | 目录 | 导入 | 分发 | 状态 |
+| --- | --- | --- | --- | --- |
+| Java 11 | [`gc-primitives/`](gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives:0.1.0` | Maven Central | ✅ 已发布 |
+| C++17 | [`cpp/`](cpp/) | `#include <rbc/gc.hpp>`（header-only） | vcpkg / Conan | ✅ 实现完成 |
+| Python 3.9+ | [`python/`](python/) | `from gc_primitives import Pool` | PyPI | ✅ 实现完成 |
+
+三语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 少 `malloc`/`free`、**Python 版不承诺性能收益**（纯语义移植，原因见 `python/README.md`）。
+
+以下为 **Java 版**文档；C++ 与 Python 的用法见各自 README。
 
 ## 导入
 
