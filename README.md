@@ -11,8 +11,8 @@
 | 语言 | 项目目录 | 导入 | 分发 | 状态 |
 | --- | --- | --- | --- | --- |
 | Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` 已发布，`0.1.1` 为纯工程重构版 |
-| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>`（header-only） | GitHub Release / vcpkg / Conan | ✅ `0.1.0` 已发 Release |
-| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` 已发布 |
+| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>`（header-only） | GitHub Release / vcpkg / Conan | ✅ `0.1.1` 已发 Release（`0.1.0` 仍可下载） |
+| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.1` 已发布（`0.1.0` 仍可安装） |
 | Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` 已发布；Trusted Publishing 待登记，当前用一次性 Token |
 | Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev（无中心仓库、无凭据） | 实现完成且 CI 全绿，首发 tag 待索引 |
 | Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives`（SwiftPM） | Git tag（零注册零凭据） | 实现完成、CI 待跑；本轮未发版 |
@@ -41,8 +41,8 @@ java/test/   cpp/test/   python/test/   rust/test/   go/test/   swift/test/   zi
 | 语言 | tag 格式 | 工作流 | 示例 |
 | --- | --- | --- | --- |
 | Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.1.1` |
-| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.2.0` |
-| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
+| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.1.1` |
+| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.1.1` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
 | Go（例外） | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
 | Swift（例外） | `swift/gc-primitives/v*` | 无（打 tag 即发） | `swift/gc-primitives/v0.1.0` |

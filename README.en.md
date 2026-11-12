@@ -11,8 +11,8 @@ The first version does exactly one thing: it turns "object pool + reuse context"
 | Language | Project directory | Import | Distribution | Status |
 | --- | --- | --- | --- | --- |
 | Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` published; `0.1.1` is a pure engineering refactor |
-| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>` (header-only) | GitHub Release / vcpkg / Conan | ✅ `0.1.0` Release published |
-| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` published |
+| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>` (header-only) | GitHub Release / vcpkg / Conan | ✅ `0.1.1` Release published (`0.1.0` still downloadable) |
+| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.1` published (`0.1.0` still installable) |
 | Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` published; Trusted Publishing pending, one-time token in use |
 | Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev (no registry, no credentials) | Implemented, CI green; first tag pending indexing |
 | Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives` (SwiftPM) | Git tag (no registration, no credentials) | Implemented, CI pending; not published this iteration |
@@ -41,8 +41,8 @@ The library name `gc-primitives` already contains a hyphen, so a **double unders
 | Language | Tag pattern | Workflow | Example |
 | --- | --- | --- | --- |
 | Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.1.1` |
-| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.2.0` |
-| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
+| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.1.1` |
+| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.1.1` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
 | Go (exception) | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
 | Swift (exception) | `swift/gc-primitives/v*` | none (tag is the release) | `swift/gc-primitives/v0.1.0` |
