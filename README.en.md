@@ -2,31 +2,32 @@
 
 > [中文](README.md) · English
 
-An object-pooling primitives library that reduces allocation and enables reuse — **one shared conceptual contract implemented in Java, C++, Python, and Rust**. It is not tied to any business scenario; callers decide the latency/throughput trade-off themselves.
+An object-pooling primitives library that reduces allocation and enables reuse — **one shared conceptual contract implemented in Java, C++, Python, Rust, and Go**. It is not tied to any business scenario; callers decide the latency/throughput trade-off themselves.
 
 The first version does exactly one thing: it turns "object pool + reuse context" into a set of composable primitives. See **[SPEC.en.md](SPEC.en.md)** ([中文](SPEC.md)) for the behavior matrix and full mapping.
 
-## Implementations in Four Languages
+## Implementations in Five Languages
 
 | Language | Project directory | Import | Distribution | Status |
 | --- | --- | --- | --- | --- |
 | Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` published; `0.1.1` is a pure engineering refactor |
 | C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>` (header-only) | GitHub Release / vcpkg / Conan | ✅ `0.1.0` Release published |
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` published |
-| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | Implemented, CI green; first release needs a one-time API token, OIDC afterwards |
+| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` published; Trusted Publishing pending, one-time token in use |
+| Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev (no registry, no credentials) | Implemented, CI green; first tag pending indexing |
 
-Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**.
+Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, Go cuts heap allocations with zero credentials, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**; the Go port is a concurrency variant of C2/C3 (no thread-local storage), see section 8.2 of `SPEC.en.md`.
 
-Below is the **Java** documentation. For C++ / Python / Rust, see their respective READMEs. Every Markdown file in this repository has a Chinese version and an English version; English filenames end in `.en.md`.
+Below is the **Java** documentation. For C++ / Python / Rust / Go, see their respective READMEs. Every Markdown file in this repository has a Chinese version and an English version; English filenames end in `.en.md`.
 
 ## Repository Layout Convention
 
 The top level is organized by **language**, the inner level by **project** — adding a new project does not require a new repository:
 
 ```
-java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/
+java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/     go/gc-primitives/
 java/example/           java/benchmarks/       (Java sibling modules, not published)
-java/test/              cpp/test/              python/test/             rust/test/   ← future project example
+java/test/              cpp/test/              python/test/             rust/test/            go/test/   ← future project example
 ```
 
 The root holds only README, SPEC, LICENSE, `.github/`, `.gitignore`, and the Gradle root configuration (`build.gradle` / `settings.gradle` / `gradle.properties`). A new project `test` simply adds one directory under each language; Gradle adds `include(':java:test')` plus a `projectDir` in `settings.gradle`.
@@ -41,8 +42,9 @@ The library name `gc-primitives` already contains a hyphen, so a **double unders
 | Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.2.0` |
 | C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
+| Go (exception) | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
 
-All four pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI versions can never be overwritten; any code change requires a version bump.
+The four upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go is the exception** — a submodule tag must carry the directory prefix (`go/gc-primitives/v0.1.0`), and since a Go module has no version declaration field, verification is done by a real consumer `go get` + `go run` job instead. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI versions can never be overwritten; any code change requires a version bump.
 
 ## Import (Java)
 
@@ -94,7 +96,7 @@ Misuse is **always strictly validated** and immediately throws `PoolStateExcepti
 
 Unreturned leases are counted precisely by `activeLeases()`; use `assertNoActiveLeases()` in tests to turn a leak into a failure.
 
-**Usage contract**: the lease and the borrowed object belong to the borrowing thread only; after closing, do not retain a reference to the object. The Rust port makes these misuse cases impossible at compile time via a callback closure — see section 8.1 of `SPEC.en.md`.
+**Usage contract**: the lease and the borrowed object belong to the borrowing thread only; after closing, do not retain a reference to the object. The Rust port makes these misuse cases impossible at compile time via a callback closure — see section 8.1 of `SPEC.en.md`; the Go port relies on a documented contract and `AssertNoActiveLeases()`, see section 8.2.
 
 ## Local Build
 

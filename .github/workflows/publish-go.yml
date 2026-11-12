@@ -1,0 +1,149 @@
+name: Publish Go module (proxy indexing)
+
+# Go 没有中心仓库：模块版本就是 Git tag，go get 直接从 GitHub 拉源码。
+# 本流水线不上传任何制品、不需要任何 Token 或 Secret，只做两件事：
+#   1. 请求 proxy.golang.org 触发缓存与 pkg.go.dev 索引
+#   2. 用「使用方」job 真实 go get + go run，证明别人能下载并使用
+# tag 格式由 Go 工具链硬性规定：子目录模块必须带目录前缀。
+on:
+  push:
+    tags:
+      - 'go/gc-primitives/v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '要索引的版本（如 v0.1.0）'
+        required: false
+        default: 'v0.1.0'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify and warm the Go module proxy
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up stable Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: false
+
+      - name: Resolve module version
+        id: v
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            V="$INPUT_VERSION"
+          else
+            V="v${TAG_NAME#go/gc-primitives/v}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "模块版本: $V"
+
+      - name: Tests and vet before indexing
+        working-directory: go/gc-primitives
+        run: |
+          go test -race ./...
+          go vet ./...
+
+      # proxy.golang.org 首次收到请求会去 GitHub 拉 tag，可能要几十秒；
+      # 触发成功即代表该版本可被 go 命令解析，pkg.go.dev 随后几分钟内出现。
+      - name: Warm proxy.golang.org (best effort)
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          MODULE="github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives"
+          URL="https://proxy.golang.org/$MODULE/@v/$VERSION.info"
+          echo "请求: $URL"
+          ok=0
+          for i in $(seq 1 10); do
+            code=$(curl -sS -o /tmp/info.json -w '%{http_code}' --max-time 30 "$URL" || true)
+            echo "第 $i 次: HTTP $code"
+            if [ "$code" = "200" ]; then
+              cat /tmp/info.json
+              ok=1
+              break
+            fi
+            sleep 15
+          done
+          if [ "$ok" != "1" ]; then
+            echo "::warning title=Proxy 尚未收录::版本 $VERSION 暂未被 proxy.golang.org 缓存，稍后可重新触发本工作流"
+          fi
+
+      - name: Request pkg.go.dev indexing (best effort)
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          MODULE="github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives"
+          curl -sS -o /dev/null -w 'pkg.go.dev HTTP %{http_code}\n' --max-time 30 \
+            "https://pkg.go.dev/$MODULE@$VERSION" || true
+
+  consumer:
+    name: 使用方 go get + go run 验证
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - name: Set up stable Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: false
+
+      - name: go get the published version and run it
+        run: |
+          MODULE="github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives"
+          mkdir -p /tmp/consumer && cd /tmp/consumer
+          go mod init example.com/consumer
+          for i in $(seq 1 10); do
+            if go get "$MODULE@$VERSION"; then
+              echo "✓ go get 成功（第 $i 次）"
+              break
+            fi
+            echo "第 $i 次 go get 失败，等待 proxy 收录..."
+            sleep 20
+          done
+          cat > main.go <<'EOF'
+          package main
+
+          import (
+              "fmt"
+
+              gcprimitives "github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives"
+          )
+
+          func main() {
+              p, err := gcprimitives.New(4,
+                  func() ([]byte, bool) { return make([]byte, 0, 16), true },
+                  func(b *[]byte) error { *b = (*b)[:0]; return nil })
+              if err != nil {
+                  panic(err)
+              }
+              l, err := p.Borrow()
+              if err != nil {
+                  panic(err)
+              }
+              *l.Get() = append(*l.Get(), "downloaded"...)
+              fmt.Println(string(*l.Get()))
+              if err := l.Close(); err != nil {
+                  panic(err)
+              }
+              if err := p.AssertNoActiveLeases(); err != nil {
+                  panic(err)
+              }
+              fmt.Println("Go OK · 来源 Go module proxy · 版本", p.BorrowCount())
+          }
+          EOF
+          go run .
