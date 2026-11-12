@@ -18,6 +18,8 @@ python/**/build/
 cpp/**/build/
 cmake-build-*/
 rust/**/target/
+# 库 crate 不锁定依赖版本；CI 跑测试会生成 Cargo.lock，忽略它以免 cargo publish 判定 working directory dirty
+rust/**/Cargo.lock
 .idea/
 *.iml
 .vscode/
