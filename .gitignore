@@ -25,6 +25,17 @@ rust/**/Cargo.lock
 go/**/vendor/
 go/**/*.test
 go/**/coverage.out
+
+# Node / Swift / Zig
+node/**/node_modules/
+node/**/dist/
+node/**/package-lock.json
+node/**/*.tsbuildinfo
+swift/**/.build/
+swift/**/.swiftpm/
+zig/**/zig-out/
+zig/**/.zig-cache/
+zig/**/zig-cache/
 .idea/
 *.iml
 .vscode/

@@ -1,0 +1,48 @@
+{
+  "name": "@rainbowcrr-sys/gc-primitives",
+  "version": "0.1.0",
+  "description": "Allocation-reducing object pooling primitives with strictly validated leases (Node/TypeScript port of gc-primitives)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.js",
+    "check": "npm run build && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.3"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rainbowcrr-sys/rbc-monorepo.git",
+    "directory": "node/gc-primitives"
+  },
+  "keywords": [
+    "pool",
+    "object-pool",
+    "allocation",
+    "lease",
+    "gc"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -6,7 +6,7 @@
 
 首个版本只做一件事：把「对象池 + 复用上下文」做成一组可组合的原语。行为对照与逐条映射见 **[SPEC.md](SPEC.md)**（[English](SPEC.en.md)）。
 
-## 五语言实现
+## 八语言实现
 
 | 语言 | 项目目录 | 导入 | 分发 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -15,19 +15,22 @@
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` 已发布 |
 | Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` 已发布；Trusted Publishing 待登记，当前用一次性 Token |
 | Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev（无中心仓库、无凭据） | 实现完成且 CI 全绿，首发 tag 待索引 |
+| Node 18+ | [`node/gc-primitives/`](node/gc-primitives/) | `@rainbowcrr-sys/gc-primitives` | npm（OIDC，预留通道） | 安全契约版实现完成、本地 13 项测试全绿；**首发需 npm 注册 + 一次性 Token** |
+| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives`（SwiftPM） | Git tag（零注册零凭据） | 实现完成、CI 待跑；本轮未发版 |
+| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | Git tag（零注册零凭据） | 实现完成、CI 待跑；本轮未发版 |
 
-五语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 与 Rust 少堆分配、Go 更少的堆分配且零凭据、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/gc-primitives/README.md`](python/gc-primitives/README.md)）。Rust 版额外承诺 **零 `unsafe`、零依赖**；Go 版是 C2/C3 的并发变体（无线程本地存储），见 `SPEC.md` 第 8.2 节。
+八语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 与 Rust 少堆分配、Go 更少的堆分配且零凭据、Node 压分配速率 + `using` 确定性归还、Swift 减少 ARC 堆分配与 retain-release、Zig 命中空闲槽时零 `allocator.create`、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/gc-primitives/README.md`](python/gc-primitives/README.md)）。Rust 版额外承诺 **零 `unsafe`、零依赖**；Go 版是 C2/C3 的并发变体（无线程本地存储），见 `SPEC.md` 第 8.2 节；Node / Swift / Zig 见第 11 章。
 
-以下为 **Java 版**文档；C++ / Python / Rust / Go 的用法见各自 README。仓库内每个 Markdown 都有中文版与英文版，英文版文件名以 `.en.md` 结尾。
+以下为 **Java 版**文档；C++ / Python / Rust / Go / Node / Swift / Zig 的用法见各自 README。仓库内每个 Markdown 都有中文版与英文版，英文版文件名以 `.en.md` 结尾。
 
 ## 仓库结构约定
 
 顶层按**语言**分，内层按**项目**分；新增项目不用建新仓库：
 
 ```
-java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/     go/gc-primitives/
+java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/     go/gc-primitives/     node/gc-primitives/     swift/gc-primitives/     zig/gc-primitives/
 java/example/           java/benchmarks/       （Java 侧兄弟模块，不进发布物）
-java/test/              cpp/test/              python/test/             rust/test/            go/test/  ← 以后新项目示例
+java/test/   cpp/test/   python/test/   rust/test/   go/test/   node/test/   swift/test/   zig/test/   ← 以后新项目示例
 ```
 
 根只留 README、SPEC、LICENSE、`.github/`、`.gitignore` 与 Gradle 根配置（`build.gradle` / `settings.gradle` / `gradle.properties`）。新项目 `test` 就是往各语言目录下加一层，Gradle 在 `settings.gradle` 里追加 `include(':java:test')` 与 `projectDir`。
@@ -43,8 +46,11 @@ java/test/              cpp/test/              python/test/             rust/tes
 | C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
 | Go（例外） | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
+| Node | `node-gc-primitives-v*` | `publish-npm.yml`（预留） | `node-gc-primitives-v0.1.0` |
+| Swift（例外） | `swift/gc-primitives/v*` | 无（打 tag 即发） | `swift/gc-primitives/v0.1.0` |
+| Zig（例外） | `zig/gc-primitives/v*` | 无（打 tag 即发） | `zig/gc-primitives/v0.1.0` |
 
-四条上传类流水线都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布；**Go 是例外**——子目录模块的 tag 必须带目录前缀（`go/gc-primitives/v0.1.0`），Go 模块没有版本声明字段，改由「使用方 `go get` + `go run`」验证。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
+上传类流水线都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布；**Go / Swift / Zig 是例外**——子目录模块/包的 tag 必须带目录前缀，且模块没有版本声明字段，改由「使用方拉取 + 运行」验证。Node 走 npm OIDC，首次发布需一次性 Granular Token。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
 
 ## 导入（Java）
 
@@ -96,7 +102,7 @@ try (Lease<StringBuilder> lease = pool.borrow()) {
 
 未归还的租约由 `activeLeases()` 精确计数，测试期用 `assertNoActiveLeases()` 把泄漏直接变成失败。
 
-**使用契约**：租约与借出的对象只归借用线程使用；关闭之后不得再持有该对象引用。这两点由调用方保证。Rust 版靠回调闭包让这类误用在编译期就不可能发生，见 `SPEC.md` 第 8.1 节；Go 版靠文档约定与 `AssertNoActiveLeases()`，见第 8.2 节。
+**使用契约**：租约与借出的对象只归借用线程使用；关闭之后不得再持有该对象引用。这两点由调用方保证。Rust 版靠回调闭包让这类误用在编译期就不可能发生，见 `SPEC.md` 第 8.1 节；Go 版靠文档约定与 `AssertNoActiveLeases()`，见第 8.2 节；Node / Swift / Zig 的并发变体与 deinit / 显式释放差异见第 11 章。
 
 ## 本地构建
 

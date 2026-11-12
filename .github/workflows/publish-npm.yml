@@ -1,0 +1,74 @@
+name: Publish Node to npm
+
+# 预留通道：本轮不发包。监听 node-gc-primitives-v* tag，尚无该 tag。
+# 首发有鸡生蛋问题：npm Trusted Publishing 只能给「已存在的包」配置，
+# 所以 0.1.0 需要一次性 Granular Token（只存 Secret，不进仓库文件），
+# 之后登记 Trusted Publisher 即可删除 Token，全走 OIDC。
+on:
+  push:
+    tags:
+      - 'node-gc-primitives-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Verify and publish
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@rainbowcrr-sys/gc-primitives
+    permissions:
+      # OIDC 必需；首发阶段若存在 NODE_AUTH_TOKEN Secret 则回退到它
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # 不要写 registry-url：那会让 npm 走 token 鉴权并跳过 OIDC
+          # npm >= 11.5.1 才支持 Trusted Publishing
+      - name: Upgrade npm
+        working-directory: node/gc-primitives
+        run: npm install -g npm@latest
+
+      - name: Verify tag matches package.json
+        working-directory: node/gc-primitives
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node - <<'JS'
+          const fs = require('fs');
+          const v = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+          const tag = process.env.TAG_NAME || '';
+          const prefix = 'node-gc-primitives-v';
+          if (process.env.EVENT_NAME === 'push' && tag.startsWith(prefix)) {
+            const tv = tag.slice(prefix.length);
+            if (tv !== v) {
+              console.error(`tag ${tag} 与 package.json 版本 ${v} 不一致，拒绝发布`);
+              process.exit(1);
+            }
+          }
+          console.log('version OK:', v);
+          JS
+
+      - name: Install, typecheck, build, test
+        working-directory: node/gc-primitives
+        run: |
+          npm install --global=false --no-audit --no-fund
+          ./node_modules/.bin/tsc --noEmit
+          npm run build
+          npm test
+
+      - name: Publish to npm
+        working-directory: node/gc-primitives
+        env:
+          # 有一次性 Token 就用它；登记 Trusted Publishing 并删除 Secret 后走 OIDC
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

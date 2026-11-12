@@ -1,0 +1,46 @@
+name: Zig CI
+
+# Zig 无 GC、无隐式分配；std.testing.allocator 会在每个 test 结束时检查泄漏。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'zig/**'
+      - '.github/workflows/zig-ci.yml'
+  pull_request:
+    paths:
+      - 'zig/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Zig 0.14.0 (tests + leak detection)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Zig 0.14.0
+        uses: mlugg/setup-zig@v1
+        with:
+          version: '0.14.0'
+
+      - name: Zig version
+        run: zig version
+
+      # `zig test` 编译并运行文件内所有 test 块，不依赖 build.zig / zon。
+      - name: Contract tests (Debug, allocator leak check)
+        working-directory: zig/gc-primitives
+        run: zig test src/root.zig
+
+      - name: Contract tests (ReleaseSafe)
+        working-directory: zig/gc-primitives
+        run: zig test -O ReleaseSafe src/root.zig
+
+      - name: zig build test
+        working-directory: zig/gc-primitives
+        run: zig build test

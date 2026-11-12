@@ -1,0 +1,51 @@
+name: Swift CI
+
+# SwiftPM 是零注册分发，但测试要在两套平台真实跑：Xcode Swift 与 Linux Swift。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'swift/**'
+      - '.github/workflows/swift-ci.yml'
+  pull_request:
+    paths:
+      - 'swift/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS (Xcode Swift)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Contract tests (XCTest)
+        working-directory: swift/gc-primitives
+        run: swift test
+
+  linux:
+    name: Ubuntu (Swift 5.9)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.9'
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Contract tests (XCTest)
+        working-directory: swift/gc-primitives
+        run: swift test

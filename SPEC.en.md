@@ -3,10 +3,10 @@
 > [中文](SPEC.md) · English
 
 **Status**: Final · 2026-11-12 · Located at the repository root
-**Applies to**: Java, C++, Python, Rust, Go
+**Applies to**: Java, C++, Python, Rust, Go, Node / TypeScript, Swift, Zig
 **Relationship**: **Ports of one shared conceptual contract**, not five independent rewrites. Behavioral consistency is guaranteed by contract tests; **performance numbers are not part of this specification** — each language's benchmark results live in its own README.
 
-All five language READMEs reference this file. Every Markdown file in the repository has a Chinese version and an English version; English filenames end in `.en.md`.
+All eight language READMEs reference this file. Every Markdown file in the repository has a Chinese version and an English version; English filenames end in `.en.md`.
 
 ---
 
@@ -23,6 +23,9 @@ Benefit claims must be written separately per language and never mixed:
 | Rust | Fewer heap allocations, better cache locality, **misuse eliminated at compile time** | "saving GC" — Rust has no GC either |
 | Python | Cross-language contract consistency, clear semantics, teaching/comparison value | "faster than the interpreter" — see below |
 | Go | No object allocation on a shard free-slot hit; lower allocation rate and GC pressure; **no central registry, no credentials** | No quantified "faster than `sync.Pool`" claim (no benchmark in the first release) |
+| Node | No object allocation on a free-slot hit; lower allocation rate and GC pressure; automatic return via `using` | No quantified "faster than V8 itself" claim (no benchmark in the first release) |
+| Swift | Fewer heap allocations/deallocations and retain-release operations; better cache locality after reuse | "saving GC" — Swift uses ARC, there is no GC |
+| Zig | A free-slot hit performs no `allocator.create` at all; objects are released explicitly and never leaked | "saving GC" — Zig has no GC and no implicit allocation |
 
 **Note on Python**: CPython primarily uses reference counting (an object is freed immediately when its reference count hits zero), with a generational GC layered on top solely to collect reference cycles. On top of that, pymalloc arenas and small-object free-lists (the interpreter already pools `list` / `dict` / `float`, etc.) mean reuse is happening underneath. A hand-written pure-Python object pool often just overlaps with those built-in caches and can even be slower due to the extra Python function call. The Python port is therefore explicitly a **pure semantic port with no performance promise**.
 
@@ -30,19 +33,25 @@ Benefit claims must be written separately per language and never mixed:
 
 **Note on Go**: Go has a GC, but goroutines migrate between OS threads and there is no thread-local storage. The Go port is therefore an **explicit concurrency variant of C2/C3** (sharded bounded stacks by `GOMAXPROCS` + global atomic counters); cross-goroutine misuse is covered by a documented contract rather than a runtime check — see section 8.2. Only "fewer heap allocations" is claimed, with no hard-coded performance number.
 
+**Note on Node**: V8 has automatic GC, so everyday business code does not need pooling; the value lies in high-frequency temporary objects and deterministic resource return. This iteration implements **the safety contract only** (strict C1–C5 validation), with a "single-threaded event loop + one Pool per worker" concurrency model — see section 11.1.
+
+**Note on Swift**: ARC is not GC — an object is freed when its reference count hits zero. `T: AnyObject` is required because a value-type getter returns a copy, which would silently discard the caller's mutations; `deinit` cannot throw, so an object whose `close()` was forgotten is **discarded rather than reused** — see section 11.2.
+
+**Note on Zig**: no GC and no implicit allocation — all memory comes from the caller's explicit `Allocator`. The Zig-specific `destroy` hook releases discarded objects, and `std.testing.allocator` catches every missed object in CI — see section 11.3.
+
 ## 2. Five Core Contracts
 
 | ID | Contract | Consequence of violation |
 | --- | --- | --- |
 | C1 | Every borrow must be explicitly ended (close the handle / leave the scope) | An unreturned lease is a leak, precisely detectable via the `active` count |
-| C2 | The handle and the borrowed object belong to the borrowing thread only; no cross-thread transfer | Throws an exception or returns an error (eliminated at compile time in Rust; concurrency variant in Go, see 8.2) |
+| C2 | The handle and the borrowed object belong to the borrowing thread only; no cross-thread transfer | Throws an exception or returns an error (eliminated at compile time in Rust; concurrency variants in Go / Node / Swift / Zig, see 8.2 and section 11) |
 | C3 | The number of idle objects per thread is bounded by `capacity`; excess is discarded | Bounded memory footprint, no unbounded residency |
 | C4 | On return, the library invokes the reset hook to restore the object to a clean state | Dirty data must never reach the next borrow |
 | C5 | Misuse is **always strictly validated**, with no switch and no Debug/Release split | Throws immediately / returns an error; never undefined behavior |
 
 C5 covers: double return, cross-thread return, cross-thread use, `get()` after close, factory returning an empty value, and `capacity <= 0`.
 
-> The library cannot intercept "still referenced externally after return" at runtime. It is the caller's responsibility not to retain a reference after the borrow ends. All five language docs must state this; Rust's callback lease makes that situation impossible at compile time; Go has no destructor fallback and relies on the documented contract plus `AssertNoActiveLeases()`.
+> The library cannot intercept "still referenced externally after return" at runtime. It is the caller's responsibility not to retain a reference after the borrow ends. All eight language docs must state this; Rust's callback lease makes that situation impossible at compile time; Go has no destructor fallback and relies on the documented contract plus `AssertNoActiveLeases()`.
 
 ## 3. Type and Naming Mapping
 
@@ -106,9 +115,9 @@ Java / C++ / Python keep "cross-thread return / cross-thread use throws immediat
 ## 7. Explicit Exclusions
 
 - **No hard-coded performance numbers**. Measurements like Java's 106.8MB → 53.4MB live only in the Java README and Release Notes, not in this specification, so Python / Rust are not bound by them
-- "Zero new object construction on a hit" is not a hard five-language requirement
+- "Zero new object construction on a hit" is not a hard eight-language requirement
 - No mandatory throughput/latency target for any language
-- The five APIs need not be literally identical in naming; only **behavioral contract** consistency plus the verifiable mapping tables in this file are required
+- The eight APIs need not be literally identical in naming; only **behavioral contract** consistency plus the verifiable mapping tables in this file are required
 
 ## 8. Per-Language Checklist
 
@@ -162,8 +171,11 @@ Go has no thread-local storage: goroutines migrate between OS threads, so `threa
 | Python | `gc-primitives` (import name `gc_primitives`) | PyPI | Python 3.9+ |
 | Rust | `gc-primitives` (import name `gc_primitives`) | crates.io (Trusted Publishing / OIDC) | Rust 1.70+, edition 2021 |
 | Go | `github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + `proxy.golang.org` / pkg.go.dev (**no central registry, no credentials**) | Go 1.21+ |
+| Node | `@rainbowcrr-sys/gc-primitives` | npm (OIDC Trusted Publishing) | Node 18+ / TypeScript 5.6 |
+| Swift | `GCPrimitives` (SwiftPM) | Git tag (**no registration, no credentials**) | Swift 5.9+ |
+| Zig | `gc_primitives` | Git tag + Zig Index (**no registration, no credentials**) | Zig 0.14.0 |
 
-License: Apache-2.0 across all five languages.
+License: Apache-2.0 across all eight languages.
 
 > crates.io exception: Trusted Publishing can only be configured for a crate that **already exists**, so the first Rust release needs a one-time API token (stored only as a GitHub Secret, never in a repository file). OIDC takes over after the trusted publisher is registered.
 
@@ -177,7 +189,7 @@ rbc-monorepo/
 ├── SPEC.md / SPEC.en.md              this spec (中文 / English)
 ├── LICENSE                           Apache-2.0
 ├── build.gradle / settings.gradle / gradle.properties
-├── .github/workflows/                five release pipelines + Rust CI + Go CI + deployment status check
+├── .github/workflows/                six release pipelines + Rust / Go / Node / Swift / Zig CI + deployment status check
 ├── java/
 │   ├── gc-primitives/                Java main library (single jar)
 │   ├── example/                      runnable sample, not published
@@ -185,13 +197,73 @@ rbc-monorepo/
 ├── cpp/gc-primitives/                include / tests / bench / CMake / vcpkg / Conan / bilingual README
 ├── python/gc-primitives/             gc_primitives / tests / pyproject / bilingual README
 ├── rust/gc-primitives/               Cargo.toml / src / tests / bilingual README
-└── go/gc-primitives/                 go.mod / *.go / tests / bilingual README
+├── go/gc-primitives/                 go.mod / *.go / tests / bilingual README
+├── node/gc-primitives/               package.json / src / test / bilingual README
+├── swift/gc-primitives/              Package.swift / Sources / Tests / bilingual README
+└── zig/gc-primitives/                build.zig / src / tests / bilingual README
 ```
 
-A future project `test` becomes `java/test/`, `cpp/test/`, `python/test/`, `rust/test/`, `go/test/`, with Gradle adding `include(':java:test')` and a `projectDir` in `settings.gradle`.
+A future project `test` becomes `java/test/`, `cpp/test/`, `python/test/`, `rust/test/`, `go/test/`, `node/test/`, `swift/test/`, `zig/test/`, with Gradle adding `include(':java:test')` and a `projectDir` in `settings.gradle`.
 
-**Tag format**: the library name contains a hyphen, so a double underscore is used — `gc-primitives__java__v*`, `gc-primitives__python__v*`, `gc-primitives__cpp__v*`, `gc-primitives__rust__v*`. A new project uses `test__java__v*`, etc., so tags never collide. All five pipelines verify "tag version == declared version in code" and refuse to publish on mismatch. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules.
+**Tag format**: the library name contains a hyphen, so a double underscore is used — `gc-primitives__java__v*`, `gc-primitives__python__v*`, `gc-primitives__cpp__v*`, `gc-primitives__rust__v*`. A new project uses `test__java__v*`, etc., so tags never collide. Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on mismatch. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules.
 
 **Go tag exception (hard rule)**: in a multi-module repository a submodule's version tag must carry the directory prefix; the Go toolchain does not understand the double-underscore format. Go therefore uses `go/gc-primitives/v0.1.0` (or `go/test/v0.1.0` for a new project). When a user runs `go get ...@v0.1.0`, the go command automatically looks for that prefixed tag. There is no upload step: pushing the tag *is* the release. The workflow only warms `proxy.golang.org`, triggers pkg.go.dev indexing, and proves the module is consumable with a real `go get` + `go run` consumer job.
 
+## 11. Supplementary Specification for the Three New Ports (Node / Swift / Zig)
+
+Sections 1–10 hold the contract for Java, C++, Python, Rust and Go. This section records the three later implementations: they **also align with C1–C5**, but because their runtime models differ, C2 (thread ownership) is an explicitly labelled variant rather than a strict port. For readability, the main mapping tables in §3 / §4 / §8 stay at five columns; item-by-item mappings for these three ports live here.
+
+### 11.1 Node / TypeScript (safety contract first)
+
+**Scope of this iteration**: the safety contract only (strict C1–C5 misuse detection, bounded reuse, reset-on-return, diagnostic counters). Async factories, `withLease` callbacks, dedicated Worker Threads tests, and dual ESM + CJS output are deferred.
+
+| SPEC contract | Node handling |
+| --- | --- |
+| C1 Explicit return | `lease.return()` / `close()` / `dispose()` / `using`; **no destructor fallback**, `assertNoActiveLeases()` detects unreturned leases |
+| C2 Borrow after close | `pool.close()` rejects borrows and clears idle objects; cross-worker misuse is not checked at runtime — the contract is "one Pool per worker" |
+| C3 Bounded | Idle list capped at `capacity` (default 16); excess is dropped |
+| C4 Reset on return | A throwing `recycler` → object discarded, error propagated, counters still settle, never returned to the pool |
+| C5 Strict misuse detection | Double return, `value` after return, factory returning `null/undefined`, `capacity <= 0`, non-function hooks → always `PoolStateError`; no `process.exit`, no switch |
+
+**API mapping**: `borrow()` / `stats()` / `capacity` / `assertNoActiveLeases()` / `PoolStateError` / `DISPOSE` (a `Symbol.dispose` compatibility layer; Node 18 falls back to a well-known symbol). `stats()` returns `{ capacity, idle, active, borrowCount, returnCount, created, closed }`.
+
+**Concurrency model**: the event loop is single-threaded, so the pool needs no internal lock; each `worker_threads` worker owns a separate V8 heap, so a Pool must be created per worker. `FinalizationRegistry` is deliberately not used for leak fallback (nondeterministic GC timing would introduce flaky behavior); deterministic counter assertions are used instead.
+
+**Verification**: CI runs Node 18 / 20 / 22. Thirteen `node:test` cases import the compiled `dist/` directly — the artifact that actually gets published — plus a `tsc --noEmit` check.
+
+### 11.2 Swift (ARC allocation optimization)
+
+**Positioning**: Swift uses ARC, not GC. Only "fewer heap allocations/deallocations, fewer retain-release operations, better cache locality after reuse" is claimed — never "saves GC".
+
+**`T: AnyObject` constraint**: a Swift getter on a value type returns a copy; allowing `struct` would silently discard every mutation made to `lease.value`, so the object would never come back to the pool as expected. Restricting to classes matches heap-object semantics and lets `recycler` reset in place.
+
+**deinit fallback**: Swift's `deinit` cannot `throw`, so the fallback path cannot safely run a potentially throwing `recycler`. An object whose `close()` was forgotten is therefore **discarded rather than reused** — counters stay exact and a dirty object can never reach the next borrower. This is the key difference from C++ RAII.
+
+**Concurrency model**: no stable cross-platform thread-local API, so one `NSLock`-protected bounded stack with counters taken inside the lock is used instead. Cross-thread use of the same `Lease` is not checked at runtime; it is a documented contract. CI verifies counter precision with 100 concurrent borrow/close operations via `DispatchQueue.concurrentPerform`.
+
+**Verification**: macOS (Xcode Swift) and Ubuntu (Swift 5.9) each run 12 XCTest cases covering C1–C5, concurrency, and the deinit fallback.
+
+### 11.3 Zig (no GC, no implicit allocation)
+
+**Positioning**: all memory comes from the caller's explicit `std.mem.Allocator`; a free-slot hit performs no `allocator.create` at all. `Pool(comptime T)` is a compile-time generic with zero vtable, zero type erasure, and zero runtime overhead.
+
+**The Zig-specific `destroy` hook**: objects discarded on reset failure, beyond capacity, or at pool close are all released explicitly through `destroy`; `std.testing.allocator` catches every object that was missed. Other languages lean on a GC / ARC / Drop — here it must be done by hand.
+
+**No destructor**: Zig has no destructor, so forgetting `close()` leaves both an active count and an unfreed object. `assertNoActiveLeases()` and the allocator's leak detection catch it together.
+
+**Error model**: the `PoolError` set (`InvalidCapacity` / `FactoryFailed` / `LeaseClosed` / `DoubleClose` / `PoolClosed` / `ActiveLeases` / `OutOfMemory`) plus `anyerror` to propagate user-defined errors; no `@panic`, no switch. A factory returning `null` counts as "factory returned an empty value".
+
+**Verification**: Zig 0.14.0 actually runs `zig test` (Debug + ReleaseSafe) and `zig build test`. Eleven tests pass with no memory leaks. Tests use local state only, so `zig test` running test blocks concurrently cannot corrupt data.
+
+### 11.4 Distribution and tags
+
+| Language | Package / path | Channel | Registration needed |
+| --- | --- | --- | --- |
+| Node | `@rainbowcrr-sys/gc-primitives` | npm (OIDC Trusted Publishing) | ✅ npm account; first release needs a one-time Granular Token |
+| Swift | `GCPrimitives` (SwiftPM) | Git tag | ❌ no registration, no credentials |
+| Zig | `gc_primitives` | Git tag + Zig Index | ❌ no registration, no credentials |
+
+Tags: `node-gc-primitives-v0.1.0`, `swift/gc-primitives/v0.1.0`, `zig/gc-primitives/v0.1.0`. Like Go, Swift and Zig are subdirectory packages whose tags must carry the directory prefix; npm uses a simple prefix.
+
+**Status of this iteration**: these three ports ship code and CI only — **no release, no tag, no credentials written anywhere**.
 Every Markdown file has a Chinese version (default filename) and an English version (`.en.md`); the two versions link to each other at the top of the file.
