@@ -17,6 +17,12 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(lib);
 
+    // Expose the module so downstream packages can use
+    // b.dependency("gc_primitives", ...).module("gc_primitives").
+    _ = b.addModule("gc_primitives", .{
+        .root_source_file = b.path("src/root.zig"),
+    });
+
     const test_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,

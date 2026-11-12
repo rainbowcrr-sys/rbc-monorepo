@@ -237,10 +237,14 @@ Java、C++、Python、Rust、Go 的契约正文见第 1–10 节。本节补记�
 
 | 语言 | 包名 / 路径 | 渠道 | 是否需要注册 |
 | --- | --- | --- | --- |
-| Swift | `GCPrimitives`（SwiftPM） | Git tag | ❌ 零注册零凭据 |
-| Zig | `gc_primitives` | Git tag + Zig Index | ❌ 零注册零凭据 |
+| Swift | `GCPrimitives`（SwiftPM） | 独立分发仓库 `gc-primitives-swift` 的 Git tag | ❌ 零注册零凭据 |
+| Zig | `gc_primitives` | GitHub Release tarball + Zig Index | ❌ 零注册零凭据 |
 
-tag：`swift/gc-primitives/v0.1.0`、`zig/gc-primitives/v0.1.0`。Swift / Zig 与 Go 同为子目录包，tag 必须带目录前缀。
+**Swift 的硬性规则**：SwiftPM 要求 `Package.swift` 在**仓库根**，版本 tag 只能是纯语义化版本（`0.1.0` / `v0.1.0`），**不接受** `swift/gc-primitives/v0.1.0` 这类路径前缀；而 `v0.1.0` 已被 Java 首发占用，不能复用。因此 Swift 源码保留在 monorepo 的 `swift/gc-primitives/`（主副本 + CI），另镜像到独立公开仓库 `rainbowcrr-sys/gc-primitives-swift`（根放 `Package.swift`）并在那里打 `v0.1.0`。monorepo 的 `swift/gc-primitives/v0.1.0` 只用于触发发布流水线与挂 Release 资产。两个仓库都零注册零凭据。
 
-**本轮状态**：两种实现只落代码与 CI，**未发版、未打 tag、未写任何凭据**。
+**Zig 的硬性规则**：Zig 没有中心仓库，但下游用 `zig fetch` 拉取 tarball，包根必须有 `build.zig.zon`（`.name` / `.version` / `.fingerprint` / `.minimum_zig_version` / `.paths`），且 `build.zig` 要用 `addModule` 暴露 module，否则下游 `@import` 拿不到。首发补齐 zon，在 `zig/gc-primitives/v0.1.0` 打 tag，Release 挂只含包目录的 tarball；CI 用 `zig fetch` 取到 hash 后再建一个独立消费包真编译运行，证明该 tarball 能被当依赖拉。仓库已加 `zig-package` topic，Zig Index 自动收录。
+
+tag：monorepo `swift/gc-primitives/v0.1.0` 与 `zig/gc-primitives/v0.1.0`；SwiftPM 侧另有 `gc-primitives-swift` 的 `v0.1.0`。
+
+**本轮状态**：两版 `0.1.0` 均已发布，CI 全绿；未写任何凭据。
 每个 Markdown 都有一份中文（默认文件名）与一份英文（`.en.md`），两版顶部互相链接。

@@ -15,8 +15,8 @@ The first version does exactly one thing: it turns "object pool + reuse context"
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.1` published (`0.1.0` still installable) |
 | Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` published; Trusted Publishing pending, one-time token in use |
 | Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev (no registry, no credentials) | Implemented, CI green; first tag pending indexing |
-| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives` (SwiftPM) | Git tag (no registration, no credentials) | Implemented, CI pending; not published this iteration |
-| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | Git tag (no registration, no credentials) | Implemented, CI pending; not published this iteration |
+| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives` (SwiftPM) | Standalone repo [`gc-primitives-swift`](https://github.com/rainbowcrr-sys/gc-primitives-swift) + Git tag (no registration, no credentials) | ✅ `v0.1.0` published, usable as a SwiftPM dependency |
+| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | GitHub Release tarball + Zig Index (no registration, no credentials) | ✅ `0.1.0` published, verified via a real `zig fetch` consumer |
 
 Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, Go cuts heap allocations with zero credentials, Swift cuts ARC heap allocations and retain-release traffic, Zig performs zero `allocator.create` on a free-slot hit, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**; the Go port is a concurrency variant of C2/C3 (no thread-local storage), see section 8.2 of `SPEC.en.md`; Swift / Zig are in section 11.
 
@@ -45,10 +45,10 @@ The library name `gc-primitives` already contains a hyphen, so a **double unders
 | C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.1.1` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
 | Go (exception) | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
-| Swift (exception) | `swift/gc-primitives/v*` | none (tag is the release) | `swift/gc-primitives/v0.1.0` |
-| Zig (exception) | `zig/gc-primitives/v*` | none (tag is the release) | `zig/gc-primitives/v0.1.0` |
+| Swift (exception) | `v*` (standalone distribution repo) | `publish-swift.yml` | `v0.1.0` |
+| Zig (exception) | `zig/gc-primitives/v*` | `publish-zig.yml` | `zig/gc-primitives/v0.1.0` |
 
-Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go / Swift / Zig are the exceptions** — a subdirectory module/package tag must carry the directory prefix, and there is no version declaration field, so verification is done by a real consumer fetch + run job instead. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI never allow a published version to be overwritten; changing code requires a version bump.
+Swift also has a monorepo tag `swift/gc-primitives/v0.1.0` that triggers the workflow and carries the Release asset; the SwiftPM version tag must be a plain semantic version, so it lives in the standalone distribution repository. Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go / Swift / Zig are the exceptions** — a subdirectory module/package tag must carry the directory prefix, and there is no version declaration field, so verification is done by a real consumer fetch + run job instead. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI never allow a published version to be overwritten; changing code requires a version bump.
 
 ## Import (Java)
 

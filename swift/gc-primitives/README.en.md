@@ -100,12 +100,22 @@ swift test
 
 CI runs on **macOS (Xcode Swift) and Ubuntu Linux (Swift 5.9+)**. There are 12 XCTest cases covering every row above plus concurrency and the deinit fallback.
 
-## Distribution (not published in this iteration)
+## Distribution (`0.1.0` published)
 
-- SwiftPM works from Git tags: **no central registry, no account, no token**
-- Suggested tag: `swift/gc-primitives/v0.1.0` (subdirectory package, same prefix rule as Go)
-- As requested, this iteration **only creates the directory and code** — no tag, no credentials written anywhere. Say "publish Swift 0.1.0" to release it
+**SwiftPM dependency** (recommended):
 
-> If `swift/gc-primitives/` should be consumable directly via `.package(url:)` on the root repository, releasing it will require splitting that directory into its own repository or adding a Git subtree. That will be handled as part of the release.
+```swift
+.package(url: "https://github.com/rainbowcrr-sys/gc-primitives-swift.git", from: "0.1.0")
+```
+
+The standalone distribution repo https://github.com/rainbowcrr-sys/gc-primitives-swift keeps `Package.swift` at its root and is tagged `v0.1.0`.
+
+- **Canonical source**: this directory, `swift/gc-primitives/`; CI runs 12 XCTest cases on both macOS and Ubuntu
+- **Monorepo release tag**: `swift/gc-primitives/v0.1.0`, with a source tarball attached to the Release
+- **Verification page**: https://swiftpackageindex.com/rainbowcrr-sys/gc-primitives-swift (first-time indexing can be requested at https://swiftpackageindex.com/add-a-package )
+
+> **Why a second repository**: SwiftPM requires `Package.swift` at the repository root and only accepts plain semantic-version tags (`v0.1.0`); it does not understand subdirectory prefixes like `swift/gc-primitives/v0.1.0`, and `v0.1.0` was already taken by the first Java release. Both copies hold identical code and are synced at release time.
+
+No registration, no token, no credentials.
 
 Every Markdown file has a Chinese and an English version; English filenames end in `.en.md`.

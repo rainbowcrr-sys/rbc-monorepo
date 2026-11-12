@@ -1,0 +1,134 @@
+name: Release Swift (tarball + real SwiftPM consumer)
+
+# Monorepo release tag: swift/gc-primitives/v<version>.
+# SwiftPM requires Package.swift at the REPOSITORY ROOT and a plain semver tag,
+# so the Swift package is mirrored to the standalone distribution repo
+# rainbowcrr-sys/gc-primitives-swift, tagged v<version>. The consumer job below
+# resolves that tag exactly like any third-party project would.
+on:
+  push:
+    tags:
+      - 'swift/gc-primitives/v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  contract-tests:
+    name: XCTest (Linux Swift 5.9)
+    runs-on: ubuntu-24.04
+    container: swift:5.9
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Contract tests
+        working-directory: swift/gc-primitives
+        run: |
+          set +e
+          swift test > /tmp/swift-test.log 2>&1
+          code=$?
+          cat /tmp/swift-test.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=swift test::$(tr '\n' ' ' < /tmp/swift-test.log | cut -c1-20000)"
+            exit "$code"
+          fi
+
+  release:
+    needs: contract-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ] && [[ "$TAG_NAME" == swift/gc-primitives/v* ]]; then
+            V="${TAG_NAME#swift/gc-primitives/v}"
+          else
+            V="0.1.0"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Swift version: $V"
+
+      - name: Package tarball
+        env:
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          NAME="gc-primitives-swift-$V"
+          STAGE="/tmp/$NAME"
+          rm -rf "$STAGE"; mkdir -p "$STAGE/$NAME"
+          cp -r swift/gc-primitives/Package.swift swift/gc-primitives/Sources \
+                swift/gc-primitives/Tests swift/gc-primitives/README.md \
+                swift/gc-primitives/README.en.md swift/gc-primitives/LICENSE "$STAGE/$NAME/"
+          tar -czf "$NAME.tar.gz" -C "$STAGE" "$NAME"
+          ls -lh "$NAME.tar.gz"
+          echo "asset=$NAME.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Create / update Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then TAG="swift/gc-primitives/v$V"; else TAG="$TAG_NAME"; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$asset" --clobber
+          else
+            gh release create "$TAG" "$asset" \
+              --title "gc-primitives Swift $V" --generate-notes --target "$GITHUB_SHA"
+          fi
+
+  consumer:
+    name: SwiftPM consumer (macOS)
+    runs-on: macos-latest
+    needs: release
+    steps:
+      - name: Build a separate SwiftPM package against v0.1.0
+        run: |
+          set -e
+          rm -rf /tmp/swift-consumer && mkdir -p /tmp/swift-consumer/Sources/consumer
+          cd /tmp/swift-consumer
+          cat > Package.swift <<'EOF'
+          // swift-tools-version:5.9
+          import PackageDescription
+          let package = Package(
+              name: "consumer",
+              dependencies: [
+                  .package(url: "https://github.com/rainbowcrr-sys/gc-primitives-swift.git", from: "0.1.0")
+              ],
+              targets: [
+                  .executableTarget(
+                      name: "consumer",
+                      dependencies: [.product(name: "GCPrimitives", package: "gc-primitives-swift")]
+                  )
+              ]
+          )
+          EOF
+          cat > Sources/consumer/main.swift <<'EOF'
+          import GCPrimitives
+
+          final class Buffer { var bytes: [UInt8] = [] }
+
+          let pool = try Pool<Buffer>(
+              capacity: 4,
+              factory: { Buffer() },
+              recycler: { buf in buf.bytes.removeAll() }
+          )
+          let lease = try pool.borrow()
+          try lease.value.bytes.append(contentsOf: [1, 2, 3])
+          try lease.close()
+          try pool.assertNoActiveLeases()
+          let s = pool.stats()
+          print("Swift consumer OK: borrow=\(s.borrowCount) return=\(s.returnCount) active=\(s.active)")
+          EOF
+          swift build
+          swift run

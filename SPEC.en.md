@@ -237,10 +237,14 @@ Sections 1–10 hold the contract for Java, C++, Python, Rust and Go. This secti
 
 | Language | Package / path | Channel | Registration needed |
 | --- | --- | --- | --- |
-| Swift | `GCPrimitives` (SwiftPM) | Git tag | ❌ no registration, no credentials |
-| Zig | `gc_primitives` | Git tag + Zig Index | ❌ no registration, no credentials |
+| Swift | `GCPrimitives` (SwiftPM) | Git tag in the standalone repo `gc-primitives-swift` | ❌ no registration, no credentials |
+| Zig | `gc_primitives` | GitHub Release tarball + Zig Index | ❌ no registration, no credentials |
 
-Tags: `swift/gc-primitives/v0.1.0`, `zig/gc-primitives/v0.1.0`. Like Go, Swift and Zig are subdirectory packages whose tags must carry the directory prefix.
+**Swift hard rule**: SwiftPM requires `Package.swift` at the **repository root** and only accepts plain semantic-version tags (`0.1.0` / `v0.1.0`); it does **not** accept path-prefixed tags such as `swift/gc-primitives/v0.1.0`. `v0.1.0` was already taken by the first Java release and cannot be reused. The Swift source therefore stays in the monorepo at `swift/gc-primitives/` (canonical copy + CI) and is mirrored to a separate public repository, `rainbowcrr-sys/gc-primitives-swift`, with `Package.swift` at its root and a `v0.1.0` tag. The monorepo tag `swift/gc-primitives/v0.1.0` only triggers the release workflow and carries the Release asset. Neither repository needs registration or credentials.
 
-**Status of this iteration**: these two ports ship code and CI only — **no release, no tag, no credentials written anywhere**.
+**Zig hard rule**: Zig has no central registry, but consumers pull a tarball with `zig fetch`, so the package root must contain `build.zig.zon` (`.name` / `.version` / `.fingerprint` / `.minimum_zig_version` / `.paths`) and `build.zig` must expose a module via `addModule`, otherwise a downstream `@import` cannot resolve. The first release adds the zon, tags `zig/gc-primitives/v0.1.0`, and attaches a tarball containing only the package directory. CI runs `zig fetch` on that asset, then builds and runs a separate consumer package against it. The repository carries the `zig-package` topic for automatic Zig Index inclusion.
+
+Tags: monorepo `swift/gc-primitives/v0.1.0` and `zig/gc-primitives/v0.1.0`; the SwiftPM side additionally has `v0.1.0` in `gc-primitives-swift`.
+
+**Status of this iteration**: both ports published `0.1.0` with green CI; no credentials written anywhere.
 Every Markdown file has a Chinese version (default filename) and an English version (`.en.md`); the two versions link to each other at the top of the file.

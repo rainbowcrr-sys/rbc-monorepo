@@ -100,12 +100,22 @@ swift test
 
 CI 在 **macOS（Xcode Swift）与 Ubuntu Linux（Swift 5.9+）** 两套环境各跑一遍，共 12 项 XCTest，覆盖上表每一条契约 + 并发 + deinit 兜底。
 
-## 分发（本轮未发版）
+## 分发（`0.1.0` 已发布）
 
-- SwiftPM 靠 Git tag，**无中心仓库、无账号、无 token**
-- 建议 tag：`swift/gc-primitives/v0.1.0`（子目录包，跟 Go 同理带目录前缀）
-- 本轮按要求**只建目录与代码、不打 tag、不写任何凭据**；要发说一句「发 Swift 0.1.0」
+**SwiftPM 依赖**（推荐）：
 
-> 若想让 `swift/gc-primitives/` 能被根仓库直接 `.package(url:)` 引用，发版时需要把该目录拆成独立仓库或加 Git subtree，届时我会一并处理。
+```swift
+.package(url: "https://github.com/rainbowcrr-sys/gc-primitives-swift.git", from: "0.1.0")
+```
+
+独立分发仓库 https://github.com/rainbowcrr-sys/gc-primitives-swift 的根目录放 `Package.swift`，tag 为 `v0.1.0`。
+
+- **源码主副本**：本目录 `swift/gc-primitives/`，CI 在 macOS + Ubuntu 各跑 12 项 XCTest
+- **monorepo 发布 tag**：`swift/gc-primitives/v0.1.0`，Release 附源码 tarball
+- **验证页**：https://swiftpackageindex.com/rainbowcrr-sys/gc-primitives-swift （首次收录可在 https://swiftpackageindex.com/add-a-package 提交）
+
+> **为什么多一个仓库**：SwiftPM 要求 `Package.swift` 在仓库根，且版本 tag 只能是纯语义化版本（`v0.1.0`），不认 `swift/gc-primitives/v0.1.0` 这种子目录前缀；而 `v0.1.0` 已被 Java 首发占用，不能复用。两处代码内容一致，发版时同步。
+
+零注册、零 token、零凭据。
 
 每个 Markdown 都有中英双语版本，英文版以 `.en.md` 结尾。

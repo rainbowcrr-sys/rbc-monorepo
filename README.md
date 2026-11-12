@@ -15,8 +15,8 @@
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.1` 已发布（`0.1.0` 仍可安装） |
 | Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` 已发布；Trusted Publishing 待登记，当前用一次性 Token |
 | Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev（无中心仓库、无凭据） | 实现完成且 CI 全绿，首发 tag 待索引 |
-| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives`（SwiftPM） | Git tag（零注册零凭据） | 实现完成、CI 待跑；本轮未发版 |
-| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | Git tag（零注册零凭据） | 实现完成、CI 待跑；本轮未发版 |
+| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives`（SwiftPM） | 独立仓库 [`gc-primitives-swift`](https://github.com/rainbowcrr-sys/gc-primitives-swift) + Git tag（零注册零凭据） | ✅ `v0.1.0` 已发布，SwiftPM 可直接依赖 |
+| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | GitHub Release tarball + Zig Index（零注册零凭据） | ✅ `0.1.0` 已发布，`zig fetch` 消费验证通过 |
 
 七语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 与 Rust 少堆分配、Go 更少的堆分配且零凭据、Swift 减少 ARC 堆分配与 retain-release、Zig 命中空闲槽时零 `allocator.create`、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/gc-primitives/README.md`](python/gc-primitives/README.md)）。Rust 版额外承诺 **零 `unsafe`、零依赖**；Go 版是 C2/C3 的并发变体（无线程本地存储），见 `SPEC.md` 第 8.2 节；Swift / Zig 见第 11 章。
 
@@ -45,10 +45,10 @@ java/test/   cpp/test/   python/test/   rust/test/   go/test/   swift/test/   zi
 | C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.1.1` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
 | Go（例外） | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
-| Swift（例外） | `swift/gc-primitives/v*` | 无（打 tag 即发） | `swift/gc-primitives/v0.1.0` |
-| Zig（例外） | `zig/gc-primitives/v*` | 无（打 tag 即发） | `zig/gc-primitives/v0.1.0` |
+| Swift（例外） | `v*`（独立分发仓库） | `publish-swift.yml` | `v0.1.0` |
+| Zig（例外） | `zig/gc-primitives/v*` | `publish-zig.yml` | `zig/gc-primitives/v0.1.0` |
 
-上传类流水线都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布；**Go / Swift / Zig 是例外**——子目录模块/包的 tag 必须带目录前缀，且模块没有版本声明字段，改由「使用方拉取 + 运行」验证。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
+Swift 另有 monorepo tag `swift/gc-primitives/v0.1.0` 用于触发流水线与挂 Release 资产；SwiftPM 的版本 tag 必须是纯语义化版本，所以放在独立分发仓库。上传类流水线都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布；**Go / Swift / Zig 是例外**——子目录模块/包的 tag 必须带目录前缀，且模块没有版本声明字段，改由「使用方拉取 + 运行」验证。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
 
 ## 导入（Java）
 

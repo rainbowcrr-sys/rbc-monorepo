@@ -1,0 +1,168 @@
+name: Release Zig (tarball + real consumer fetch)
+
+# Tag: zig/gc-primitives/v<version>
+# Zig has no central registry: a GitHub Release asset IS the distribution.
+# The consumer job fetches that exact asset with `zig fetch` and builds a
+# separate package against it — proving the tarball is usable as a dependency.
+on:
+  push:
+    tags:
+      - 'zig/gc-primitives/v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Zig 0.14.0
+        uses: mlugg/setup-zig@v1
+        with:
+          version: '0.14.0'
+
+      - name: Resolve version
+        id: ver
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ] && [[ "$TAG_NAME" == zig/gc-primitives/v* ]]; then
+            V="${TAG_NAME#zig/gc-primitives/v}"
+          else
+            V=$(sed -n 's/.*\.version = "\([^"]*\)".*/\1/p' zig/gc-primitives/build.zig.zon | head -1)
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Zig version: $V"
+
+      - name: Contract tests + zon validation
+        working-directory: zig/gc-primitives
+        run: |
+          set -e
+          zig test src/root.zig
+          zig test -O ReleaseSafe src/root.zig
+          zig build test
+
+      - name: Package tarball
+        env:
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          NAME="gc-primitives-zig-$V"
+          STAGE="/tmp/$NAME"
+          rm -rf "$STAGE"; mkdir -p "$STAGE/$NAME"
+          cp -r zig/gc-primitives/build.zig zig/gc-primitives/build.zig.zon \
+                zig/gc-primitives/src zig/gc-primitives/README.md \
+                zig/gc-primitives/README.en.md zig/gc-primitives/LICENSE "$STAGE/$NAME/"
+          tar -czf "$NAME.tar.gz" -C "$STAGE" "$NAME"
+          ls -lh "$NAME.tar.gz"
+          echo "asset=$NAME.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Create / update Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then TAG="zig/gc-primitives/v$V"; else TAG="$TAG_NAME"; fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$asset" --clobber
+          else
+            gh release create "$TAG" "$asset" \
+              --title "gc-primitives Zig $V" --generate-notes --target "$GITHUB_SHA"
+          fi
+
+      - name: zig fetch the published asset and build a consumer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.ver.outputs.version }}
+        run: |
+          set -e
+          URL=$(gh release view "$TAG" --json assets --jq '.assets[0].url' 2>/dev/null || true)
+          if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+            TAG_ENC=$(printf '%s' "$TAG" | jq -sRr @uri)
+            URL=$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG_ENC}" \
+                    --jq '.assets[0].browser_download_url')
+          fi
+          echo "Asset URL: $URL"
+          test -n "$URL" && test "$URL" != "null"
+          HASH=$(zig fetch "$URL")
+          echo "zig fetch hash: $HASH"
+          test -n "$HASH"
+
+          rm -rf /tmp/consumer && mkdir -p /tmp/consumer/src
+          cd /tmp/consumer
+          cat > build.zig.zon <<EOF
+          .{
+              .name = .consumer,
+              .version = "0.0.0",
+              .fingerprint = 0x1234567890abcdef,
+              .minimum_zig_version = "0.14.0",
+              .dependencies = .{
+                  .gc_primitives = .{
+                      .url = "$URL",
+                      .hash = "$HASH",
+                  },
+              },
+              .paths = .{""},
+          }
+          EOF
+          cat > build.zig <<'EOF'
+          const std = @import("std");
+          pub fn build(b: *std.Build) void {
+              const target = b.standardTargetOptions(.{});
+              const optimize = b.standardOptimizeOption(.{});
+              const dep = b.dependency("gc_primitives", .{ .target = target, .optimize = optimize });
+              const exe = b.addExecutable(.{
+                  .name = "consumer",
+                  .root_module = b.createModule(.{
+                      .root_source_file = b.path("src/main.zig"),
+                      .target = target,
+                      .optimize = optimize,
+                  }),
+              });
+              exe.root_module.addImport("gc_primitives", dep.module("gc_primitives"));
+              b.installArtifact(exe);
+          }
+          EOF
+          cat > src/main.zig <<'EOF'
+          const std = @import("std");
+          const gc = @import("gc_primitives");
+
+          const Buffer = struct { data: [32]u8 = undefined, len: usize = 0 };
+          fn createBuffer(a: std.mem.Allocator) anyerror!?*Buffer {
+              const b = try a.create(Buffer); b.* = .{}; return b;
+          }
+          fn resetBuffer(b: *Buffer) anyerror!void { b.len = 0; }
+          fn destroyBuffer(a: std.mem.Allocator, b: *Buffer) void { a.destroy(b); }
+
+          pub fn main() !void {
+              var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+              defer _ = gpa.deinit();
+              const allocator = gpa.allocator();
+              var pool = try gc.Pool(*Buffer).init(allocator, .{
+                  .capacity = 8,
+                  .factory = createBuffer,
+                  .recycler = resetBuffer,
+                  .destroy = destroyBuffer,
+              });
+              defer pool.deinit();
+              var lease = try pool.borrow();
+              const b = try lease.value();
+              b.len = 3;
+              try lease.close();
+              try pool.assertNoActiveLeases();
+              const s = pool.stats();
+              std.debug.print("Zig consumer OK: borrow={d} return={d} active={d}\n",
+                              .{ s.borrow_count, s.return_count, s.active });
+          }
+          EOF
+          zig build
+          ./zig-out/bin/consumer
