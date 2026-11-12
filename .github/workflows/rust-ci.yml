@@ -3,6 +3,9 @@ name: Rust CI
 # Rust 版在真实工具链上验证：MSRV 1.70 与 stable 两套，测试 / doctest / clippy / fmt 全跑。
 on:
   push:
+    # tag push 不触发本工作流（paths 过滤对 tag push 不生效，必须用 branches 限定）
+    branches:
+      - main
     paths:
       - 'rust/**'
       - '.github/workflows/rust-ci.yml'
