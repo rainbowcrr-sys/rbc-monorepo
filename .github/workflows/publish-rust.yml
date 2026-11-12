@@ -67,4 +67,22 @@ jobs:
         env:
           # 优先 OIDC 临时凭证；首次发布时回退到 Secrets 里的一次性 Token
           CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token || secrets.CARGO_REGISTRY_TOKEN }}
-        run: cargo publish
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "::error title=缺少发布凭证::OIDC 未配置且 Secret CARGO_REGISTRY_TOKEN 为空"
+            exit 1
+          fi
+          echo "凭证已注入，长度 ${#CARGO_REGISTRY_TOKEN}（内容不打印）"
+          set +e
+          cargo publish 2>&1 | tee /tmp/cargo-publish.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            python3 - <<'PY'
+          import pathlib
+          t = pathlib.Path('/tmp/cargo-publish.log').read_text(encoding='utf-8', errors='replace')
+          e = t.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print('::error title=cargo publish 完整输出::' + e[:60000])
+          PY
+            exit "$code"
+          fi
