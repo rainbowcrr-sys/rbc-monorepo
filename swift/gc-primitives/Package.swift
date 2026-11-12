@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "gc-primitives",
+    name: "gc-primitives-swift",
     platforms: [
         .macOS(.v10_15),
         .iOS(.v13),
