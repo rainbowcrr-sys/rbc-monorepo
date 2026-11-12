@@ -108,7 +108,7 @@ jobs:
               targets: [
                   .executableTarget(
                       name: "consumer",
-                      dependencies: [.product(name: "GCPrimitives")]
+                      dependencies: [.product(name: "GCPrimitives", package: "gc-primitives-swift")]
                   )
               ]
           )

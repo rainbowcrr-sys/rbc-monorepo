@@ -95,12 +95,15 @@ jobs:
           test -n "$URL" && test "$URL" != "null"
           rm -rf /tmp/consumer && mkdir -p /tmp/consumer/src
           cd /tmp/consumer
-          # A root/consumer package does not need a fingerprint; `zig fetch --save`
-          # writes the exact .url + .hash pair for us, avoiding any parsing guesswork.
+          # `zig fetch --save` writes the exact .url + .hash pair for us.
+          # The fingerprint's high 32 bits are derived from the package name
+          # (.consumer); the low 32 bits are free, so this value works on every
+          # Zig 0.14 build.
           cat > build.zig.zon <<'EOF'
           .{
               .name = .consumer,
               .version = "0.0.0",
+              .fingerprint = 0x705b3727fba27151,
               .minimum_zig_version = "0.14.0",
               .paths = .{""},
           }
