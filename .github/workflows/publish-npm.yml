@@ -1,9 +1,9 @@
 name: Publish Node to npm
 
-# 预留通道：本轮不发包。监听 node-gc-primitives-v* tag，尚无该 tag。
-# 首发有鸡生蛋问题：npm Trusted Publishing 只能给「已存在的包」配置，
-# 所以 0.1.0 需要一次性 Granular Token（只存 Secret，不进仓库文件），
-# 之后登记 Trusted Publisher 即可删除 Token，全走 OIDC。
+# 监听 node-gc-primitives-v* tag。
+# npm Trusted Publishing (OIDC) 只能给「已存在的包」配置，所以首发用一次性
+# Granular Token（只存 Secret NPM_BOOTSTRAP_TOKEN，不进仓库文件）；包上架、
+# 网页登记 Trusted Publisher 后删除该 Secret，即自动切到零凭据 OIDC。
 on:
   push:
     tags:
@@ -17,12 +17,10 @@ jobs:
   publish:
     name: Verify and publish
     runs-on: ubuntu-latest
-    environment:
-      name: npm
-      url: https://www.npmjs.com/package/@rainbowcrr-sys/gc-primitives
     permissions:
-      # OIDC 必需；首发阶段若存在 NODE_AUTH_TOKEN Secret 则回退到它
+      # OIDC 必需（npm >= 11.5.1 / Node >= 22.14）
       id-token: write
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,8 +29,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          # 不要写 registry-url：那会让 npm 走 token 鉴权并跳过 OIDC
-          # npm >= 11.5.1 才支持 Trusted Publishing
+          # 官方 Trusted Publishing 模板要求写 registry-url；
+          # 是否走 OIDC 取决于 NODE_AUTH_TOKEN 是否为空，而不是这一行。
+          registry-url: 'https://registry.npmjs.org'
+
       - name: Upgrade npm
         working-directory: node/gc-primitives
         run: npm install -g npm@latest
@@ -66,9 +66,21 @@ jobs:
           npm run build
           npm test
 
+      - name: Inspect package contents (dry run)
+        working-directory: node/gc-primitives
+        run: npm pack --dry-run
+
       - name: Publish to npm
         working-directory: node/gc-primitives
         env:
-          # 有一次性 Token 就用它；登记 Trusted Publishing 并删除 Secret 后走 OIDC
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+          # 首发阶段有值 -> token 鉴权；删除 Secret 后为空 -> unset -> OIDC
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+        run: |
+          npm --version
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "No bootstrap token: using npm Trusted Publishing (OIDC)"
+            unset NODE_AUTH_TOKEN
+          else
+            echo "Bootstrap token present: first-publish mode"
+          fi
+          npm publish --access public
