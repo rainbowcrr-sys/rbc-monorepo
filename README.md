@@ -13,7 +13,7 @@
 | Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` 已发布，`0.1.1` 为纯工程重构版 |
 | C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>`（header-only） | GitHub Release / vcpkg / Conan | ✅ `0.1.0` 已发 Release |
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` 已发布 |
-| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | 实现完成，首发待 OIDC 登记 |
+| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | 实现完成且 CI 全绿；首发需一次性 API Token，之后走 OIDC |
 
 四语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 与 Rust 少堆分配、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/gc-primitives/README.md`](python/gc-primitives/README.md)）。Rust 版额外承诺 **零 `unsafe`、零依赖**。
 

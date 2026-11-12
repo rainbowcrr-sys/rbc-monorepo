@@ -107,6 +107,11 @@ CI 会真跑 **Rust 1.70**（MSRV）与 stable 两套工具链，声明的 MSRV 
 
 crates.io：`gc-primitives`，版本 `0.1.0`，Apache-2.0，零依赖。
 
-发布走 **crates.io Trusted Publishing（OIDC）**：打 `gc-primitives__rust__v*` tag 后，工作流用 GitHub 的一次性 OIDC 身份换取临时上传凭证再 `cargo publish`，仓库里**不需要任何长期 API Token**。首次发布前需在 crates.io 网页登记一次 trusted publisher。
+发布分两阶段，因为 **crates.io 的 Trusted Publishing 只能给已存在的 crate 配置**：
+
+1. **首次发布**：用 crates.io 上生成的、带 `publish-new` 权限的 API Token（只存 GitHub Secret `CARGO_REGISTRY_TOKEN`，不进仓库文件），打 `gc-primitives__rust__v0.1.0` 让工作流完成首发
+2. **之后**：在 crate 的 Settings → Trusted Publishing 登记 GitHub 发布者，工作流改用一次性 OIDC 身份换临时凭证，长效 Token 即可删除
+
+`publish-rust.yml` 对两阶段都兼容：优先 OIDC，失败时回退 Secret。登记字段为 owner `rainbowcrr-sys`、repository `rbc-monorepo`、workflow `publish-rust.yml`、environment `crates-io`。
 
 版本与 Java / C++ / Python 各自独立，不被已发布的 Java `0.1.0` 锁住。

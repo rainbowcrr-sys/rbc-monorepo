@@ -144,6 +144,8 @@ Rust 版是「SPEC 对齐 + 编译期强化」，不是另起炉灶：
 
 许可证：四语言统一 Apache-2.0。
 
+> crates.io 例外：Trusted Publishing 只能配置在**已存在的 crate** 上，所以 Rust 首发需用一次性 API Token（只存 GitHub Secret，不进仓库文件），登记 trusted publisher 之后才切换为 OIDC。
+
 ## 10. 仓库落位与 tag 约定
 
 顶层按**语言**分目录，内层按**项目**分目录；新增项目无需新建仓库：

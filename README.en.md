@@ -13,7 +13,7 @@ The first version does exactly one thing: it turns "object pool + reuse context"
 | Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` published; `0.1.1` is a pure engineering refactor |
 | C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>` (header-only) | GitHub Release / vcpkg / Conan | ✅ `0.1.0` Release published |
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` published |
-| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | Implemented; first release pending OIDC registration |
+| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | Implemented, CI green; first release needs a one-time API token, OIDC afterwards |
 
 Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**.
 

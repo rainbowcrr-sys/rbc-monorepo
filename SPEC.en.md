@@ -144,6 +144,8 @@ The Rust port is "SPEC alignment + compile-time strengthening", not a separate d
 
 License: Apache-2.0 across all four languages.
 
+> crates.io exception: Trusted Publishing can only be configured for a crate that **already exists**, so the first Rust release needs a one-time API token (stored only as a GitHub Secret, never in a repository file). OIDC takes over after the trusted publisher is registered.
+
 ## 10. Repository Layout and Tag Convention
 
 The top level is organized by **language**, the inner level by **project** — adding a new project does not require a new repository:

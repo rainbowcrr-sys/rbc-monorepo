@@ -106,6 +106,11 @@ CI actually runs **two toolchains, Rust 1.70 (MSRV) and stable**, so the declare
 
 crates.io: `gc-primitives`, version `0.1.0`, Apache-2.0, zero dependencies.
 
-Publishing uses **crates.io Trusted Publishing (OIDC)**: on a `gc-primitives__rust__v*` tag, the workflow exchanges GitHub's short-lived OIDC identity for a temporary upload credential and runs `cargo publish`. **No long-lived API token is stored in the repository.** A one-time trusted publisher registration on the crates.io website is required before the first release.
+Publishing happens in two stages, because **crates.io Trusted Publishing can only be configured for a crate that already exists**:
+
+1. **First release**: use a crates.io API token with `publish-new` scope (stored only as the GitHub Secret `CARGO_REGISTRY_TOKEN`, never in a repository file) and push the `gc-primitives__rust__v0.1.0` tag
+2. **Afterwards**: register the GitHub trusted publisher in the crate's Settings → Trusted Publishing; the workflow then uses short-lived OIDC credentials and the long-lived token can be deleted
+
+`publish-rust.yml` supports both stages: it prefers OIDC and falls back to the Secret when OIDC is not configured yet. Registration values: owner `rainbowcrr-sys`, repository `rbc-monorepo`, workflow `publish-rust.yml`, environment `crates-io`.
 
 The version is independent from Java / C++ / Python and is not locked to the published Java `0.1.0`.
