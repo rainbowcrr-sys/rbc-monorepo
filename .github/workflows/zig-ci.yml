@@ -35,12 +35,36 @@ jobs:
       # `zig test` 编译并运行文件内所有 test 块，不依赖 build.zig / zon。
       - name: Contract tests (Debug, allocator leak check)
         working-directory: zig/gc-primitives
-        run: zig test src/root.zig
+        run: |
+          set +e
+          zig test src/root.zig 2>&1 | tee /tmp/zig-debug.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=zig test (Debug) 完整输出::$(tr '\n' ' ' < /tmp/zig-debug.log | cut -c1-20000)"
+            exit "$code"
+          fi
 
       - name: Contract tests (ReleaseSafe)
         working-directory: zig/gc-primitives
-        run: zig test -O ReleaseSafe src/root.zig
+        run: |
+          set +e
+          zig test -O ReleaseSafe src/root.zig 2>&1 | tee /tmp/zig-release.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=zig test (ReleaseSafe) 完整输出::$(tr '\n' ' ' < /tmp/zig-release.log | cut -c1-20000)"
+            exit "$code"
+          fi
 
       - name: zig build test
         working-directory: zig/gc-primitives
-        run: zig build test
+        run: |
+          set +e
+          zig build test 2>&1 | tee /tmp/zig-build.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=zig build test 完整输出::$(tr '\n' ' ' < /tmp/zig-build.log | cut -c1-20000)"
+            exit "$code"
+          fi

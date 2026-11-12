@@ -29,23 +29,36 @@ jobs:
 
       - name: Contract tests (XCTest)
         working-directory: swift/gc-primitives
-        run: swift test
+        run: |
+          set +e
+          swift test 2>&1 | tee /tmp/swift-macos.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=swift test (macOS) 完整输出::$(tr '\n' ' ' < /tmp/swift-macos.log | cut -c1-20000)"
+            exit "$code"
+          fi
 
   linux:
-    name: Ubuntu (Swift 5.9)
-    runs-on: ubuntu-latest
+    name: Ubuntu (Swift 5.9 官方容器)
+    runs-on: ubuntu-24.04
+    # 不依赖 runner 预装 Swift，也不依赖 setup-swift 对新 Ubuntu 的适配
+    container: swift:5.9
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          swift-version: '5.9'
 
       - name: Swift version
         run: swift --version
 
       - name: Contract tests (XCTest)
         working-directory: swift/gc-primitives
-        run: swift test
+        run: |
+          set +e
+          swift test 2>&1 | tee /tmp/swift-linux.log
+          code=${PIPESTATUS[0]}
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=swift test (Linux) 完整输出::$(tr '\n' ' ' < /tmp/swift-linux.log | cut -c1-20000)"
+            exit "$code"
+          fi

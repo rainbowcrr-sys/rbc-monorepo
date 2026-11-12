@@ -84,8 +84,10 @@ pub fn Pool(comptime T: type) type {
             if (self.closed) return error.PoolClosed;
 
             var value: T = undefined;
-            if (self.idle.pop()) |reused| {
-                value = reused;
+            const n = self.idle.items.len;
+            if (n > 0) {
+                value = self.idle.items[n - 1];
+                self.idle.items.len = n - 1;
             } else {
                 const produced = (try self.factory(self.allocator)) orelse
                     return error.FactoryFailed;
@@ -102,7 +104,7 @@ pub fn Pool(comptime T: type) type {
         pub fn close(self: *Self) void {
             self.closed = true;
             for (self.idle.items) |item| self.destroy_fn(self.allocator, item);
-            self.idle.clearRetainingCapacity();
+            self.idle.items.len = 0;
         }
 
         pub fn stats(self: *const Self) Stats {
