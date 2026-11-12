@@ -102,6 +102,7 @@ jobs:
           import PackageDescription
           let package = Package(
               name: "consumer",
+              platforms: [.macOS(.v10_15)],
               dependencies: [
                   .package(url: "https://github.com/rainbowcrr-sys/gc-primitives-swift.git", from: "0.1.0")
               ],
