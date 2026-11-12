@@ -1,0 +1,100 @@
+name: Publish Python to PyPI
+
+# 多语言共用仓库：Python 版只认 py-v* tag，不碰 Java 的 java-v* / C++ 的 cpp-v*。
+on:
+  push:
+    tags:
+      - 'py-v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & verify distributions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 防止「tag 写 py-v0.2.0 但包里还是 0.1.0」导致 PyPI 重复上传旧版本
+      - name: Verify tag version matches package metadata
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re, tomllib
+
+          pyproject = tomllib.loads(pathlib.Path('python/pyproject.toml').read_text(encoding='utf-8'))
+          declared = pyproject['project']['version']
+          init = pathlib.Path('python/gc_primitives/__init__.py').read_text(encoding='utf-8')
+          m = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', init)
+          init_version = m.group(1) if m else None
+
+          print(f'pyproject.toml      : {declared}')
+          print(f'__init__.py         : {init_version}')
+          if declared != init_version:
+              raise SystemExit('版本不一致：pyproject.toml 与 __init__.py 必须同步改')
+
+          tag = os.environ.get('TAG_NAME', '')
+          event = os.environ.get('EVENT_NAME', '')
+          if event == 'push' and tag.startswith('py-v'):
+              tag_version = tag[len('py-v'):]
+              print(f'tag                : {tag_version}')
+              if tag_version != declared:
+                  raise SystemExit(f'tag {tag} 与包版本 {declared} 不一致，拒绝发布')
+          else:
+              print('手动触发：跳过 tag 比对，使用包内声明版本', declared)
+          PY
+
+      - name: Install build and check tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Run contract tests
+        run: python3 -m unittest discover -s python/tests -v
+
+      - name: Build wheel and sdist
+        working-directory: python
+        run: python -m build
+
+      - name: Check distributions render correctly
+        working-directory: python
+        run: python -m twine check dist/*
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: python/dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI (Trusted Publishing)
+    needs: build
+    runs-on: ubuntu-latest
+    # PyPI 侧的 Trusted Publisher 要填同样的 environment 名：pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/p/gc-primitives
+    permissions:
+      # Trusted Publishing 必需；不需要任何长期 API Token
+      id-token: write
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

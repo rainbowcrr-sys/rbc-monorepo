@@ -1,9 +1,11 @@
 name: Publish to Maven Central
 
 on:
+  # 多语言共用仓库，tag 按语言分前缀；Java 版只认 java-v*，
+  # 避免 Python/C++ 发版时误触发 Maven Central 重复上传 0.1.0。
   push:
     tags:
-      - 'v*'
+      - 'java-v*'
   workflow_dispatch:
     inputs:
       publishing_type:
