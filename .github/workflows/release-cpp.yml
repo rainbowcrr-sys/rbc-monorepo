@@ -1,0 +1,96 @@
+name: Release C++ (GitHub Release + header-only tarball)
+
+# C++ 是 header-only：打 tag 即可出可直接下载的 Release 产物，
+# 这是三语言里 C++ 唯一「即时可用」的发布渠道。
+# vcpkg / Conan 属于上游登记渠道，需要向别人的仓库提 PR 审核，见 RELEASING.md。
+on:
+  push:
+    tags:
+      - 'cpp-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify tag version matches C++ metadata
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, re
+
+          vcpkg = json.loads(pathlib.Path('cpp/vcpkg.json').read_text(encoding='utf-8'))['version-string']
+          conan = re.search(r'version\s*=\s*"([^"]+)"', pathlib.Path('cpp/conanfile.py').read_text(encoding='utf-8')).group(1)
+          cmake = re.search(r'project\([^)]*VERSION\s+([0-9][^\s)]*)', pathlib.Path('cpp/CMakeLists.txt').read_text(encoding='utf-8')).group(1)
+          print('vcpkg.json :', vcpkg)
+          print('conanfile  :', conan)
+          print('CMakeLists :', cmake)
+          if not (vcpkg == conan == cmake):
+              raise SystemExit('三处 C++ 版本号不一致，拒绝发版')
+
+          tag = os.environ.get('TAG_NAME', '')
+          if os.environ.get('EVENT_NAME') == 'push' and tag.startswith('cpp-v'):
+              tv = tag[len('cpp-v'):]
+              print('tag        :', tv)
+              if tv != vcpkg:
+                  raise SystemExit(f'tag {tag} 与 C++ 版本 {vcpkg} 不一致，拒绝发版')
+          else:
+              print('手动触发：跳过 tag 比对，使用元数据版本', vcpkg)
+          PY
+
+      - name: Build and run contract tests
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -pthread \
+              -I cpp/include cpp/tests/contract_test.cpp -o /tmp/contract_test
+          /tmp/contract_test
+
+      - name: Package header-only tarball
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG_NAME#cpp-v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "$TAG_NAME" ]; then
+            VERSION=$(python3 -c "import json;print(json.load(open('cpp/vcpkg.json'))['version-string'])")
+          fi
+          NAME="gc-primitives-cpp-$VERSION"
+          STAGE=/tmp/$NAME
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE/$NAME/rbc"
+          cp -r cpp/include/rbc/gc "$STAGE/$NAME/rbc/"
+          cp cpp/include/rbc/gc.hpp "$STAGE/$NAME/rbc/"
+          cp cpp/LICENSE "$STAGE/$NAME/"
+          cp cpp/README.md cpp/README.en.md "$STAGE/$NAME/"
+          tar -czf "$NAME-header-only.tar.gz" -C "$STAGE" "$NAME"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          ls -lh "$NAME-header-only.tar.gz"
+
+      - name: Create GitHub Release with tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          # workflow_dispatch 下 ref_name 是分支名（如 main），必须自己拼 tag
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="cpp-v$VERSION"
+          else
+            TAG="$TAG_NAME"
+          fi
+          ASSET="gc-primitives-cpp-$VERSION-header-only.tar.gz"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$ASSET" --clobber
+            echo "已给现有 Release $TAG 更新产物"
+          else
+            gh release create "$TAG" "$ASSET" \
+              --title "gc-primitives C++ $VERSION" \
+              --generate-notes --target "$GITHUB_SHA"
+            echo "已创建 Release $TAG"
+          fi
