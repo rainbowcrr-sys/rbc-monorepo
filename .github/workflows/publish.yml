@@ -41,7 +41,11 @@ jobs:
         env:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-        run: gradle :gc-primitives:bundleCentral --no-daemon
+        run: |
+          gradle :gc-primitives:bundleCentral --no-daemon
+          bundle=(gc-primitives/build/central-bundle/*-bundle.zip)
+          files=$(unzip -Z1 "${bundle[0]}" | tr '\n' ' ')
+          echo "::notice title=Bundle 文件清单::$files"
 
       # 凭据全部由 Secrets 注入；仓库内不含任何凭据明文
       - name: Upload to Central Portal

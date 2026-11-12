@@ -82,3 +82,8 @@ signing {
     }
     sign publishing.publications.mavenJava
 }
+
+// 发布到本地 staging 目录前先完成签名，确保 bundle 里带齐全部 .asc
+tasks.matching { it.name == 'publishMavenJavaPublicationToCentralStagingRepository' }.configureEach {
+    dependsOn 'signMavenJavaPublication'
+}

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # 把 deployment bundle 上传到 Maven Central Portal，并轮询到终态。
 # 凭据只从环境变量读取，不写入任何文件、不回显。
+# 失败时把 Portal 响应写成 check-run annotation，便于通过 API 读取诊断信息。
 set -euo pipefail
 
 : "${CENTRAL_USERNAME:?CENTRAL_USERNAME 未设置（Portal User Token username）}"
@@ -25,24 +26,52 @@ fi
 
 # Bearer = base64(username:password)，仅放进请求头，不打印到日志
 AUTH="$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')"
+ERR_FILE="$(mktemp)"
+trap 'rm -f "$ERR_FILE"' EXIT
+
+# body 写 stdout；非 2xx 时把错误写入 ERR_FILE 并返回 1
 request() {
-  curl -sS --fail-with-body --max-time 60 "$@" -H "Authorization: Bearer $AUTH"
+  local raw code body
+  if ! raw="$(curl -sS --max-time 60 "$@" -H "Authorization: Bearer $AUTH" -w $'\n%{http_code}')"; then
+    printf '%s' 'curl 请求失败（网络/超时）' > "$ERR_FILE"
+    return 1
+  fi
+  code="${raw##*$'\n'}"
+  body="${raw%$'\n'*}"
+  if [[ ! "$code" =~ ^2 ]]; then
+    printf 'HTTP %s: %s' "$code" "$body" > "$ERR_FILE"
+    return 1
+  fi
+  printf '%s' "$body"
 }
 
 echo "上传 bundle: $NAME (publishingType=$PUBLISHING_TYPE)"
-DEPLOYMENT="$(request -X POST \
+if ! RAW="$(request -X POST \
   -F "bundle=@${BUNDLE};type=application/octet-stream" \
-  "${API}/upload?publishingType=${PUBLISHING_TYPE}&name=${NAME}" | tr -d '[:space:]')"
+  "${API}/upload?publishingType=${PUBLISHING_TYPE}&name=${NAME}")"; then
+  MSG="$(cat "$ERR_FILE")"
+  echo "::error title=Central Portal 上传失败::${MSG:0:1500}"
+  echo "$MSG" >&2
+  exit 1
+fi
 
+DEPLOYMENT="$(printf '%s' "$RAW" | tr -d '[:space:]')"
 if [ -z "$DEPLOYMENT" ]; then
+  echo "::error title=Central Portal 上传失败::上传未返回 deploymentId"
   echo "上传未返回 deploymentId" >&2
   exit 1
 fi
 echo "deploymentId: $DEPLOYMENT"
+echo "::notice title=deploymentId::$DEPLOYMENT"
 
 STATE=""
 for i in $(seq 1 "$POLLS"); do
-  BODY="$(request -X POST "${API}/status?id=${DEPLOYMENT}")"
+  if ! BODY="$(request -X POST "${API}/status?id=${DEPLOYMENT}")"; then
+    MSG="$(cat "$ERR_FILE")"
+    echo "::error title=Portal status 查询失败::${MSG:0:1500}"
+    echo "$MSG" >&2
+    exit 1
+  fi
   STATE="$(printf '%s' "$BODY" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("deploymentState",""))')"
   echo "状态 [$i/$POLLS]: ${STATE:-<空>}"
 
@@ -62,6 +91,7 @@ for i in $(seq 1 "$POLLS"); do
       fi
       ;;
     FAILED)
+      echo "::error title=Central Portal 校验失败::${BODY:0:1800}"
       echo "部署校验失败：" >&2
       printf '%s\n' "$BODY" >&2
       exit 1
@@ -69,6 +99,7 @@ for i in $(seq 1 "$POLLS"); do
     PENDING|VALIDATING|PUBLISHING)
       ;;
     *)
+      echo "::error title=Portal 状态无法识别::${BODY:0:1500}"
       echo "无法识别的状态，原始响应：" >&2
       printf '%s\n' "$BODY" >&2
       exit 1
@@ -77,5 +108,6 @@ for i in $(seq 1 "$POLLS"); do
   sleep "$POLL_SECONDS"
 done
 
+echo "::error title=等待超时::最后一次状态 ${STATE:-<空>}，deploymentId=$DEPLOYMENT"
 echo "等待超时（最后一次状态: ${STATE:-<空>}），deploymentId=$DEPLOYMENT" >&2
 exit 1
