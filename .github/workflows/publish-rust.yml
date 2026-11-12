@@ -7,6 +7,12 @@ on:
     tags:
       - 'gc-primitives__rust__v*'
   workflow_dispatch:
+    inputs:
+      verify_only:
+        description: '仅验证 crates.io Trusted Publishing (OIDC) 凭证，不执行 cargo publish'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -62,11 +68,31 @@ jobs:
       # 首发阶段存在 CARGO_REGISTRY_TOKEN Secret，跳过 OIDC 直接用它；
       # 登记完 Trusted Publishing 并删除该 Secret 后，自动切换到 OIDC。
       - name: Exchange OIDC token for crates.io credential
-        if: env.FALLBACK_TOKEN == ''
+        if: env.FALLBACK_TOKEN == '' || inputs.verify_only == true
         uses: rust-lang/crates-io-auth-action@v1
         id: auth
 
+      - name: Verify OIDC credential against crates.io
+        if: inputs.verify_only == true
+        env:
+          OIDC_TOKEN: ${{ steps.auth.outputs.token }}
+        run: |
+          if [ -z "$OIDC_TOKEN" ]; then
+            echo "::error title=OIDC 未换到凭证::Trusted Publishing 可能未按字段登记"
+            exit 1
+          fi
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            -H "Authorization: $OIDC_TOKEN" \
+            https://crates.io/api/v1/crates/gc-primitives)
+          echo "crates.io API HTTP: $code"
+          if [ "$code" != "200" ]; then
+            echo "::error title=OIDC 凭证无效::HTTP $code"
+            exit 1
+          fi
+          echo "OIDC 凭证交换成功，Trusted Publishing 配置有效"
+
       - name: Publish to crates.io
+        if: inputs.verify_only != true
         working-directory: rust/gc-primitives
         env:
           # 优先 OIDC 临时凭证；首次发布时回退到 Secrets 里的一次性 Token
