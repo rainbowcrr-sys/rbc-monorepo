@@ -1,10 +1,12 @@
 # gc-primitives 跨语言契约规范（SPEC）
 
+> 中文 · [English](SPEC.en.md)
+
 **状态**：正式版 · 2026-11-12 · 已落位仓库根
 **适用实现**：Java `0.1.0`（已发布 Maven Central）、C++ `0.1.0`、Python `0.1.0`
 **关系**：**同一套概念契约移植**，不是各语言重写一遍。行为一致性由契约测试保证；**性能数字不写入本规范**，各语言基准结果写进各自 README。
 
-三语言 README 均引用本文件。
+三语言 README 均引用本文件。仓库内所有 Markdown 均有中文版与英文版，英文版文件名以 `.en.md` 结尾。
 
 ---
 
@@ -124,22 +126,22 @@ Python 用 snake_case 对齐语义，不照搬 camelCase；本表就是逐条映
 
 ```
 rbc-monorepo/
-├── SPEC.md                       ← 本文件
-├── README.md                     三语言总览入口
-├── gc-primitives/                Java 主库（已发布）
-├── example/ benchmarks/          Java 侧既有模块
+├── README.md / README.en.md         根说明（中 / 英）
+├── SPEC.md / SPEC.en.md             本规范（中 / 英）
+├── gc-primitives/                   Java 主库（已发布）
+├── example/ benchmarks/             Java 侧既有模块
 ├── cpp/
-│   ├── include/rbc/gc/pool.hpp   header-only 本体
-│   ├── include/rbc/gc.hpp        umbrella 头
-│   ├── tests/contract_test.cpp   契约测试
-│   ├── bench/                    Google Benchmark
+│   ├── include/rbc/gc/pool.hpp      header-only 本体
+│   ├── include/rbc/gc.hpp           umbrella 头
+│   ├── tests/contract_test.cpp      契约测试
+│   ├── bench/                       Google Benchmark
 │   ├── CMakeLists.txt / vcpkg.json / conanfile.py
-│   └── README.md
+│   └── README.md / README.en.md
 └── python/
-    ├── gc_primitives/            __init__.py / _pool.py
+    ├── gc_primitives/               __init__.py / _pool.py
     ├── tests/test_contract.py
     ├── pyproject.toml
-    └── README.md
+    └── README.md / README.en.md
 ```
 
-目录名 `cpp/` 与 `python/`，与已有 `gc-primitives/` 平级；共用同一仓库的 CI、tag 节奏与 `rbc-` 组织前缀。
+目录名 `cpp/` 与 `python/`，与已有 `gc-primitives/` 平级；共用同一仓库的 CI、tag 节奏与 `rbc-` 组织前缀。每个 Markdown 都有一份中文（默认文件名）与一份英文（`.en.md`），两版顶部互相链接。

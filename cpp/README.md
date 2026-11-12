@@ -1,6 +1,8 @@
 # gc-primitives · C++ 版
 
-与 Java 版同一套概念契约的 C++17 移植，行为规范见仓库根 [SPEC.md](../SPEC.md)。
+> 中文 · [English](README.en.md)
+
+与 Java 版同一套概念契约的 C++17 移植，行为规范见仓库根 [SPEC.md](../SPEC.md)（[English](../SPEC.en.md)）。
 
 > C++ 没有 GC，这里的收益是**更少的 `malloc`/`free` 与更好的缓存局部性**，不叫「省 GC」。
 

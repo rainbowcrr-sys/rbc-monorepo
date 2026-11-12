@@ -1,6 +1,8 @@
 # gc-primitives · Python 版
 
-与 Java / C++ 版同一套概念契约的纯 Python 语义移植，行为规范见仓库根 [SPEC.md](../SPEC.md)。
+> 中文 · [English](README.en.md)
+
+与 Java / C++ 版同一套概念契约的纯 Python 语义移植，行为规范见仓库根 [SPEC.md](../SPEC.md)（[English](../SPEC.en.md)）。
 
 > **不承诺性能收益。** 这一版的定位是跨语言契约一致性、语义清晰与教学对照，
 > 不是「比解释器快」。原因见下。
