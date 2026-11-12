@@ -16,7 +16,8 @@ esac
 
 API="${CENTRAL_API:-https://central.sonatype.com/api/v1/publisher}"
 POLL_SECONDS="${POLL_SECONDS:-10}"
-POLLS="${POLLS:-60}"
+# Portal 的 PUBLISHING 阶段可能远超过 10 分钟，给足 30 分钟窗口
+POLLS="${POLLS:-180}"
 NAME="$(basename "$BUNDLE")"
 
 if [ ! -f "$BUNDLE" ]; then
@@ -108,6 +109,14 @@ for i in $(seq 1 "$POLLS"); do
   sleep "$POLL_SECONDS"
 done
 
+# Portal 侧会继续完成发布，CI 轮询窗口耗尽不等于发布失败
+case "$STATE" in
+  PENDING|VALIDATING|VALIDATED|PUBLISHING)
+    echo "::warning title=轮询窗口耗尽，Portal 仍在发布中::最后一次状态 $STATE，deploymentId=$DEPLOYMENT，可用 Check Central Deployment 工作流核对终态"
+    echo "轮询窗口耗尽，Portal 仍在发布中（状态 $STATE），deploymentId=$DEPLOYMENT"
+    exit 0
+    ;;
+esac
 echo "::error title=等待超时::最后一次状态 ${STATE:-<空>}，deploymentId=$DEPLOYMENT"
 echo "等待超时（最后一次状态: ${STATE:-<空>}），deploymentId=$DEPLOYMENT" >&2
 exit 1

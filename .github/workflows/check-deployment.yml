@@ -1,0 +1,30 @@
+name: Check Central Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        description: 'Central Portal deploymentId'
+        required: true
+        type: string
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # 只查询，不上传、不重新发布；用于 PUBLISHING 卡住或 CI 轮询超时后核对终态
+      - name: Query Portal status and artifact availability
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          DEPLOYMENT_ID: ${{ inputs.deployment_id }}
+        run: |
+          AUTH="$(printf '%s:%s' "$CENTRAL_USERNAME" "$CENTRAL_PASSWORD" | base64 | tr -d '\n')"
+          BODY="$(curl -sS --max-time 60 -X POST -H "Authorization: Bearer $AUTH" \
+            "https://central.sonatype.com/api/v1/publisher/status?id=${DEPLOYMENT_ID}")"
+          echo "::notice title=Portal 状态::$BODY"
+          STATE="$(printf '%s' "$BODY" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("deploymentState",""))')"
+          echo "::notice title=deploymentState::$STATE"
+          CODE="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            https://repo1.maven.org/maven2/net/de5/rainbowcrrsys/gc-primitives/0.1.0/gc-primitives-0.1.0.pom)"
+          echo "::notice title=Maven Central pom HTTP::$CODE"
