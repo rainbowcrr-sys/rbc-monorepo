@@ -5,7 +5,7 @@ import os
 
 class GcPrimitivesConan(ConanFile):
     name = "gc-primitives"
-    version = "0.1.0"
+    version = "0.1.1"
     license = "Apache-2.0"
     url = "https://github.com/rainbowcrr-sys/rbc-monorepo"
     description = "Allocation-reducing object pooling primitives for C++17 (header-only)"

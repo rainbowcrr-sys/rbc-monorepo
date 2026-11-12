@@ -112,4 +112,4 @@ Benchmark results belong in this README's Release Notes, **not in the SPEC** —
 | Conan | `conanfile.py` (`package_id` cleared, no binary variants) |
 | CMake | `install()` exports the `rbc::gc_primitives` target |
 
-Version `0.1.0`, independent from the Java version, Apache-2.0.
+Version `0.1.1`, independent from the Java version, Apache-2.0.

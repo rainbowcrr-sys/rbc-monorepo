@@ -72,7 +72,7 @@ python3 -m unittest discover -s python/gc-primitives/tests -v
 
 ## Distribution
 
-PyPI: `gc-primitives`, import name `gc_primitives`, Python 3.9+, Apache-2.0, version `0.1.0`.
+PyPI: `gc-primitives`, import name `gc_primitives`, Python 3.9+, Apache-2.0, version `0.1.1`.
 
 ```bash
 pip install gc-primitives
@@ -84,4 +84,4 @@ Building:
 cd python/gc-primitives && python3 -m build
 ```
 
-The version is independent from Java / C++ and is not locked to the published Java `0.1.0`.
+The version is independent from Java / C++ and is not locked to any other language's published version.

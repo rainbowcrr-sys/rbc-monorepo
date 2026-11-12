@@ -112,4 +112,4 @@ cmake --build cpp/gc-primitives/build --target allocation_bench
 | Conan | `conanfile.py`（`package_id` 清空，无二进制变体） |
 | CMake | `install()` 导出 `rbc::gc_primitives` target |
 
-版本 `0.1.0`，与 Java 版各自独立，Apache-2.0。
+版本 `0.1.1`，与 Java 版各自独立，Apache-2.0。

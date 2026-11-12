@@ -79,7 +79,7 @@ python3 -m unittest discover -s python/gc-primitives/tests -v
 
 ## 分发
 
-PyPI：`gc-primitives`，导入名 `gc_primitives`，Python 3.9+，Apache-2.0，版本 `0.1.0`。
+PyPI：`gc-primitives`，导入名 `gc_primitives`，Python 3.9+，Apache-2.0，版本 `0.1.1`。
 
 ```bash
 pip install gc-primitives
@@ -91,4 +91,4 @@ pip install gc-primitives
 cd python/gc-primitives && python3 -m build
 ```
 
-版本与 Java / C++ 各自独立，不被已发布的 Java `0.1.0` 锁住。
+版本与 Java / C++ 各自独立，不被 Java 或其他语言的已发布版本锁住。

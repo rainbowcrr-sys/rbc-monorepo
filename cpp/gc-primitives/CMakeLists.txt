@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(gc_primitives_cpp VERSION 0.1.0 LANGUAGES CXX)
+project(gc_primitives_cpp VERSION 0.1.1 LANGUAGES CXX)
 
 # header-only INTERFACE 库，C++17
 add_library(gc_primitives INTERFACE)

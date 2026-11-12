@@ -11,4 +11,4 @@
 from ._pool import Lease, Pool, PoolStateError, noop_recycler
 
 __all__ = ["Pool", "Lease", "PoolStateError", "noop_recycler"]
-__version__ = "0.1.0"
+__version__ = "0.1.1"
