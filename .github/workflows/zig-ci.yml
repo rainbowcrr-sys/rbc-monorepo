@@ -37,8 +37,9 @@ jobs:
         working-directory: zig/gc-primitives
         run: |
           set +e
-          zig test src/root.zig 2>&1 | tee /tmp/zig-debug.log
-          code=${PIPESTATUS[0]}
+          zig test src/root.zig > /tmp/zig-debug.log 2>&1
+          code=$?
+          cat /tmp/zig-debug.log
           set -e
           if [ "$code" -ne 0 ]; then
             echo "::error title=zig test (Debug) 完整输出::$(tr '\n' ' ' < /tmp/zig-debug.log | cut -c1-20000)"
@@ -49,8 +50,9 @@ jobs:
         working-directory: zig/gc-primitives
         run: |
           set +e
-          zig test -O ReleaseSafe src/root.zig 2>&1 | tee /tmp/zig-release.log
-          code=${PIPESTATUS[0]}
+          zig test -O ReleaseSafe src/root.zig > /tmp/zig-release.log 2>&1
+          code=$?
+          cat /tmp/zig-release.log
           set -e
           if [ "$code" -ne 0 ]; then
             echo "::error title=zig test (ReleaseSafe) 完整输出::$(tr '\n' ' ' < /tmp/zig-release.log | cut -c1-20000)"
@@ -61,8 +63,9 @@ jobs:
         working-directory: zig/gc-primitives
         run: |
           set +e
-          zig build test 2>&1 | tee /tmp/zig-build.log
-          code=${PIPESTATUS[0]}
+          zig build test > /tmp/zig-build.log 2>&1
+          code=$?
+          cat /tmp/zig-build.log
           set -e
           if [ "$code" -ne 0 ]; then
             echo "::error title=zig build test 完整输出::$(tr '\n' ' ' < /tmp/zig-build.log | cut -c1-20000)"

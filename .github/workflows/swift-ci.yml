@@ -31,8 +31,9 @@ jobs:
         working-directory: swift/gc-primitives
         run: |
           set +e
-          swift test 2>&1 | tee /tmp/swift-macos.log
-          code=${PIPESTATUS[0]}
+          swift test > /tmp/swift-macos.log 2>&1
+          code=$?
+          cat /tmp/swift-macos.log
           set -e
           if [ "$code" -ne 0 ]; then
             echo "::error title=swift test (macOS) 完整输出::$(tr '\n' ' ' < /tmp/swift-macos.log | cut -c1-20000)"
@@ -55,8 +56,9 @@ jobs:
         working-directory: swift/gc-primitives
         run: |
           set +e
-          swift test 2>&1 | tee /tmp/swift-linux.log
-          code=${PIPESTATUS[0]}
+          swift test > /tmp/swift-linux.log 2>&1
+          code=$?
+          cat /tmp/swift-linux.log
           set -e
           if [ "$code" -ne 0 ]; then
             echo "::error title=swift test (Linux) 完整输出::$(tr '\n' ' ' < /tmp/swift-linux.log | cut -c1-20000)"

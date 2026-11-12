@@ -268,10 +268,16 @@ test "C3 idle objects are bounded by capacity" {
     var pool = try Pool(*Buffer).init(testing.allocator, opts);
     defer pool.deinit();
 
+    // Hold all 32 leases first; sequential borrow/close would leave at most
+    // one idle object and never exercise the capacity bound.
+    var leases: [32]Lease(*Buffer) = undefined;
     var i: usize = 0;
-    while (i < 16) : (i += 1) {
-        var lease = try pool.borrow();
-        try lease.close();
+    while (i < 32) : (i += 1) {
+        leases[i] = try pool.borrow();
+    }
+    i = 0;
+    while (i < 32) : (i += 1) {
+        try leases[i].close();
     }
     try testing.expectEqual(@as(usize, 2), pool.stats().idle);
     try testing.expectEqual(@as(usize, 0), pool.stats().active);

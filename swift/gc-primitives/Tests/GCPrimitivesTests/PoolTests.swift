@@ -75,8 +75,13 @@ final class PoolTests: XCTestCase {
 
     func testIdleIsBoundedByCapacity() throws {
         let (pool, _) = try makePool(capacity: 2)
+        // 先同时持有 32 个租约；顺序借还时池里永远只有 1 个空闲对象，
+        // 根本测不到 capacity 上限。
+        var leases: [Lease<Box>] = []
         for _ in 0..<32 {
-            let lease = try pool.borrow()
+            leases.append(try pool.borrow())
+        }
+        for lease in leases {
             try lease.close()
         }
         XCTAssertEqual(pool.stats().idle, 2)
