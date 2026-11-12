@@ -61,22 +61,4 @@ jobs:
 
       - name: rustfmt check
         working-directory: rust/gc-primitives
-        run: |
-          if cargo fmt -- --check; then
-            echo "rustfmt OK"
-          else
-            cargo fmt
-            cd "$GITHUB_WORKSPACE"
-            python3 - <<'PY'
-          import subprocess
-          diff = subprocess.run(
-              ['git', 'diff', '--no-color', '--', 'rust/gc-primitives'],
-              capture_output=True, text=True,
-          ).stdout
-          encoded = (diff.replace('%', '%25')
-                         .replace('\r', '%0D')
-                         .replace('\n', '%0A'))
-          print('::error title=rustfmt diff::' + encoded[:60000])
-          PY
-            exit 1
-          fi
+        run: cargo fmt -- --check

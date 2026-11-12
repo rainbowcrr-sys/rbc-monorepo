@@ -62,7 +62,10 @@ fn diagnostics_are_precise() {
 fn invalid_capacity_is_rejected() {
     let result: Result<Pool<String>, PoolError> = Pool::new(0, || Some(String::new()), |_| Ok(()));
     assert!(matches!(result, Err(PoolError::InvalidCapacity)));
-    assert!(matches!(Pool::<String>::with_defaults(0), Err(PoolError::InvalidCapacity)));
+    assert!(matches!(
+        Pool::<String>::with_defaults(0),
+        Err(PoolError::InvalidCapacity)
+    ));
 }
 
 #[test]
@@ -160,7 +163,10 @@ fn pool_is_shareable_across_threads_with_isolated_idle_stacks() {
 
 #[test]
 fn error_display_is_human_readable() {
-    assert_eq!(PoolError::InvalidCapacity.to_string(), "capacity must be > 0");
+    assert_eq!(
+        PoolError::InvalidCapacity.to_string(),
+        "capacity must be > 0"
+    );
     assert_eq!(
         PoolError::FactoryReturnedNone.to_string(),
         "factory returned None"

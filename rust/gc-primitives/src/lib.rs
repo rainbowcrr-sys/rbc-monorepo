@@ -56,7 +56,10 @@ impl fmt::Display for PoolError {
             PoolError::ReentrantBorrow => write!(f, "reentrant borrow is not allowed"),
             PoolError::ResetFailed(msg) => write!(f, "recycler failed, object discarded: {msg}"),
             PoolError::ActiveLeases(n) => {
-                write!(f, "{n} borrow(s) not returned; every with_borrow must settle")
+                write!(
+                    f,
+                    "{n} borrow(s) not returned; every with_borrow must settle"
+                )
             }
         }
     }
