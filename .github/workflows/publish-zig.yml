@@ -93,24 +93,15 @@ jobs:
           fi
           echo "Asset URL: $URL"
           test -n "$URL" && test "$URL" != "null"
-          HASH=$(zig fetch "$URL")
-          echo "zig fetch hash: $HASH"
-          test -n "$HASH"
-
           rm -rf /tmp/consumer && mkdir -p /tmp/consumer/src
           cd /tmp/consumer
-          cat > build.zig.zon <<EOF
+          # A root/consumer package does not need a fingerprint; `zig fetch --save`
+          # writes the exact .url + .hash pair for us, avoiding any parsing guesswork.
+          cat > build.zig.zon <<'EOF'
           .{
               .name = .consumer,
               .version = "0.0.0",
-              .fingerprint = 0x1234567890abcdef,
               .minimum_zig_version = "0.14.0",
-              .dependencies = .{
-                  .gc_primitives = .{
-                      .url = "$URL",
-                      .hash = "$HASH",
-                  },
-              },
               .paths = .{""},
           }
           EOF
@@ -164,5 +155,15 @@ jobs:
                               .{ s.borrow_count, s.return_count, s.active });
           }
           EOF
-          zig build
+          zig fetch --save "$URL"
+          cat build.zig.zon
+          set +e
+          zig build > /tmp/zig-consumer.log 2>&1
+          code=$?
+          cat /tmp/zig-consumer.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=zig consumer build::$(tr '\n' ' ' < /tmp/zig-consumer.log | cut -c1-20000)"
+            exit "$code"
+          fi
           ./zig-out/bin/consumer

@@ -108,7 +108,7 @@ jobs:
               targets: [
                   .executableTarget(
                       name: "consumer",
-                      dependencies: [.product(name: "GCPrimitives", package: "gc-primitives-swift")]
+                      dependencies: [.product(name: "GCPrimitives")]
                   )
               ]
           )
@@ -127,8 +127,15 @@ jobs:
           try lease.value.bytes.append(contentsOf: [1, 2, 3])
           try lease.close()
           try pool.assertNoActiveLeases()
-          let s = pool.stats()
-          print("Swift consumer OK: borrow=\(s.borrowCount) return=\(s.returnCount) active=\(s.active)")
+          print("Swift consumer OK")
           EOF
-          swift build
+          set +e
+          swift build > /tmp/swift-consumer.log 2>&1
+          code=$?
+          cat /tmp/swift-consumer.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=swift consumer build::$(tr '\n' ' ' < /tmp/swift-consumer.log | cut -c1-20000)"
+            exit "$code"
+          fi
           swift run
