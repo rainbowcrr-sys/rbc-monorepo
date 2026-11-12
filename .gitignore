@@ -26,11 +26,7 @@ go/**/vendor/
 go/**/*.test
 go/**/coverage.out
 
-# Node / Swift / Zig
-node/**/node_modules/
-node/**/dist/
-node/**/package-lock.json
-node/**/*.tsbuildinfo
+# Swift / Zig
 swift/**/.build/
 swift/**/.swiftpm/
 zig/**/zig-out/

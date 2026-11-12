@@ -2,7 +2,7 @@
 
 > 中文 · [English](README.en.md)
 
-与 Java / C++ / Python / Rust / Go / Node / Zig 同一套概念契约的 Swift 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md) 第 11.2 节（[English](../../SPEC.en.md)）。
+与 Java / C++ / Python / Rust / Go / Zig 同一套概念契约的 Swift 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md) 第 11.1 节（[English](../../SPEC.en.md)）。
 
 ## 为什么 Swift 也需要对象池：ARC，不是 GC
 

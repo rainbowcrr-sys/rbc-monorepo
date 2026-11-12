@@ -2,7 +2,7 @@
 
 > 中文 · [English](README.en.md)
 
-与 Java / C++ / Python / Rust / Go / Node / Swift 同一套概念契约的 Zig 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md) 第 11.3 节（[English](../../SPEC.en.md)）。
+与 Java / C++ / Python / Rust / Go / Swift 同一套概念契约的 Zig 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md) 第 11.2 节（[English](../../SPEC.en.md)）。
 
 ## 为什么 Zig 最需要对象池：没有 GC，也没有隐式分配
 

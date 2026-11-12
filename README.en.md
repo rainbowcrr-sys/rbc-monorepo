@@ -6,7 +6,7 @@ An object-pooling primitives library that reduces allocation and enables reuse �
 
 The first version does exactly one thing: it turns "object pool + reuse context" into a set of composable primitives. See **[SPEC.en.md](SPEC.en.md)** ([中文](SPEC.md)) for the behavior matrix and full mapping.
 
-## Implementations in Eight Languages
+## Implementations in Seven Languages
 
 | Language | Project directory | Import | Distribution | Status |
 | --- | --- | --- | --- | --- |
@@ -15,22 +15,21 @@ The first version does exactly one thing: it turns "object pool + reuse context"
 | Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.0` published |
 | Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` published; Trusted Publishing pending, one-time token in use |
 | Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev (no registry, no credentials) | Implemented, CI green; first tag pending indexing |
-| Node 18+ | [`node/gc-primitives/`](node/gc-primitives/) | `@rainbowcrr-sys/gc-primitives` | npm (OIDC, reserved) | Safety-contract port done, 13 local tests green; **first release needs npm signup + a one-time token** |
 | Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives` (SwiftPM) | Git tag (no registration, no credentials) | Implemented, CI pending; not published this iteration |
 | Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | Git tag (no registration, no credentials) | Implemented, CI pending; not published this iteration |
 
-Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, Go cuts heap allocations with zero credentials, Node lowers allocation rate with deterministic `using` return, Swift cuts ARC heap allocations and retain-release traffic, Zig performs zero `allocator.create` on a free-slot hit, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**; the Go port is a concurrency variant of C2/C3 (no thread-local storage), see section 8.2 of `SPEC.en.md`; Node / Swift / Zig are in section 11.
+Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, Go cuts heap allocations with zero credentials, Swift cuts ARC heap allocations and retain-release traffic, Zig performs zero `allocator.create` on a free-slot hit, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**; the Go port is a concurrency variant of C2/C3 (no thread-local storage), see section 8.2 of `SPEC.en.md`; Swift / Zig are in section 11.
 
-Below is the **Java** documentation. For C++ / Python / Rust / Go / Node / Swift / Zig, see their respective READMEs. Every Markdown file in this repository has a Chinese version and an English version; English filenames end in `.en.md`.
+Below is the **Java** documentation. For C++ / Python / Rust / Go / Swift / Zig, see their respective READMEs. Every Markdown file in this repository has a Chinese version and an English version; English filenames end in `.en.md`.
 
 ## Repository Layout Convention
 
 The top level is organized by **language**, the inner level by **project** — adding a new project does not require a new repository:
 
 ```
-java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/     go/gc-primitives/     node/gc-primitives/     swift/gc-primitives/     zig/gc-primitives/
+java/gc-primitives/     cpp/gc-primitives/     python/gc-primitives/     rust/gc-primitives/     go/gc-primitives/     swift/gc-primitives/     zig/gc-primitives/
 java/example/           java/benchmarks/       (Java sibling modules, not published)
-java/test/   cpp/test/   python/test/   rust/test/   go/test/   node/test/   swift/test/   zig/test/   ← future project example
+java/test/   cpp/test/   python/test/   rust/test/   go/test/   swift/test/   zig/test/   ← future project example
 ```
 
 The root holds only README, SPEC, LICENSE, `.github/`, `.gitignore`, and the Gradle root configuration (`build.gradle` / `settings.gradle` / `gradle.properties`). A new project `test` simply adds one directory under each language; Gradle adds `include(':java:test')` plus a `projectDir` in `settings.gradle`.
@@ -46,11 +45,10 @@ The library name `gc-primitives` already contains a hyphen, so a **double unders
 | C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
 | Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
 | Go (exception) | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
-| Node | `node-gc-primitives-v*` | `publish-npm.yml` (reserved) | `node-gc-primitives-v0.1.0` |
 | Swift (exception) | `swift/gc-primitives/v*` | none (tag is the release) | `swift/gc-primitives/v0.1.0` |
 | Zig (exception) | `zig/gc-primitives/v*` | none (tag is the release) | `zig/gc-primitives/v0.1.0` |
 
-Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go / Swift / Zig are the exceptions** — a subdirectory module/package tag must carry the directory prefix, and there is no version declaration field, so verification is done by a real consumer fetch + run job instead. Node uses npm OIDC and needs a one-time Granular Token for its first release. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI never allow a published version to be overwritten; changing code requires a version bump.
+Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go / Swift / Zig are the exceptions** — a subdirectory module/package tag must carry the directory prefix, and there is no version declaration field, so verification is done by a real consumer fetch + run job instead. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI never allow a published version to be overwritten; changing code requires a version bump.
 
 ## Import (Java)
 
@@ -102,7 +100,7 @@ Misuse is **always strictly validated** and immediately throws `PoolStateExcepti
 
 Unreturned leases are counted precisely by `activeLeases()`; use `assertNoActiveLeases()` in tests to turn a leak into a failure.
 
-**Usage contract**: the lease and the borrowed object belong to the borrowing thread only; after closing, do not retain a reference to the object. The Rust port makes these misuse cases impossible at compile time via a callback closure — see section 8.1 of `SPEC.en.md`; the Go port relies on a documented contract and `AssertNoActiveLeases()`, see section 8.2; the Node / Swift / Zig concurrency variants, deinit fallback and explicit-release differences are in section 11.
+**Usage contract**: the lease and the borrowed object belong to the borrowing thread only; after closing, do not retain a reference to the object. The Rust port makes these misuse cases impossible at compile time via a callback closure — see section 8.1 of `SPEC.en.md`; the Go port relies on a documented contract and `AssertNoActiveLeases()`, see section 8.2; the Swift / Zig concurrency variants, deinit fallback and explicit-release differences are in section 11.
 
 ## Local Build
 

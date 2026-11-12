@@ -3,10 +3,10 @@
 > 中文 · [English](SPEC.en.md)
 
 **状态**：正式版 · 2026-11-12 · 已落位仓库根
-**适用实现**：Java、C++、Python、Rust、Go、Node / TypeScript、Swift、Zig
+**适用实现**：Java、C++、Python、Rust、Go、Swift、Zig
 **关系**：**同一套概念契约移植**，不是各语言重写一遍。行为一致性由契约测试保证；**性能数字不写入本规范**，各语言基准结果写进各自 README。
 
-八语言 README 均引用本文件。仓库内每个 Markdown 都有中文版与英文版，英文版文件名以 `.en.md` 结尾。
+七语言 README 均引用本文件。仓库内每个 Markdown 都有中文版与英文版，英文版文件名以 `.en.md` 结尾。
 
 ---
 
@@ -14,7 +14,7 @@
 
 对外只讲一件事：把「对象池 + 复用上下文」做成可组合原语，不限场景，由调用方决定延迟与吞吐的取舍。
 
-八语言的收益口径必须分开写，不能混：
+七语言的收益口径必须分开写，不能混：
 
 | 语言 | 实际收益 | 不能这么写 |
 | --- | --- | --- |
@@ -23,7 +23,6 @@
 | Rust | 更少的堆分配、复用后的缓存局部性；**误用在编译期被消掉** | 「省 GC」——Rust 也没有 GC |
 | Python | 跨语言契约一致、语义清晰、教学与对照价值 | 「比解释器快」——见下 |
 | Go | 命中分片空闲槽时不分配对象，压低分配速率与 GC 压力；**零中心仓库、零凭据** | 不做「比 `sync.Pool` 快」的量化承诺（首版无基准） |
-| Node | 命中空闲槽时不分配对象，压低分配速率与 GC 压力；`using` 自动归还 | 不做「比 V8 自己快」的量化承诺（首版无基准） |
 | Swift | 减少堆分配/释放与 retain-release 次数，复用后缓存局部性更好 | 「省 GC」——Swift 用 ARC，没有 GC |
 | Zig | 命中空闲槽时完全不调用 `allocator.create`，对象显式释放、绝不泄漏 | 「省 GC」——Zig 没有 GC 也没有隐式分配 |
 
@@ -33,25 +32,24 @@
 
 **Go 特别说明**：Go 有 GC，但 goroutine 会在 OS 线程之间迁移，没有线程本地存储。所以 Go 版是 **C2/C3 的并发变体**（按 `GOMAXPROCS` 分片的有界栈 + 全局原子计数），跨 goroutine 误用靠文档约定而非运行时检测，见第 8.2 节；收益口径只写「更少的堆分配」，不写死性能数字。
 
-**Node 特别说明**：V8 有自动 GC，日常业务无需池化；价值在高频临时对象与确定性资源归还。本轮**只做安全契约**（C1–C5 强制校验），并发模型是「单线程事件循环 + 每 worker 独立池」，见第 11.1 节。
 
-**Swift 特别说明**：ARC 不是 GC，对象引用归零即释放。约束 `T: AnyObject` 是因为 Swift 的值类型 getter 会拷贝，调用方的修改会静默丢失；`deinit` 不能抛错，所以忘记 `close()` 的对象**直接丢弃而不复用**，见第 11.2 节。
+**Swift 特别说明**：ARC 不是 GC，对象引用归零即释放。约束 `T: AnyObject` 是因为 Swift 的值类型 getter 会拷贝，调用方的修改会静默丢失；`deinit` 不能抛错，所以忘记 `close()` 的对象**直接丢弃而不复用**，见第 11.1 节。
 
-**Zig 特别说明**：无 GC、无隐式分配，所有内存来自调用方显式 `Allocator`。Zig 独有的 `destroy` 钩子负责释放被丢弃的对象，`std.testing.allocator` 在 CI 里抓每一个漏掉的对象，见第 11.3 节。
+**Zig 特别说明**：无 GC、无隐式分配，所有内存来自调用方显式 `Allocator`。Zig 独有的 `destroy` 钩子负责释放被丢弃的对象，`std.testing.allocator` 在 CI 里抓每一个漏掉的对象，见第 11.2 节。
 
 ## 2. 五条核心契约
 
 | 编号 | 契约 | 违反后果 |
 | --- | --- | --- |
 | C1 | 每次借出必须显式结束（关闭句柄 / 离开作用域） | 未归还即泄漏，`active` 计数可精确发现 |
-| C2 | 句柄与借出的对象只归借用线程使用，不跨线程传递 | 抛异常或返回错误（Rust 在编译期消掉；Go / Node / Swift / Zig 为并发变体，见 8.2 与第 11 章） |
+| C2 | 句柄与借出的对象只归借用线程使用，不跨线程传递 | 抛异常或返回错误（Rust 在编译期消掉；Go / Swift / Zig 为并发变体，见 8.2 与第 11 章） |
 | C3 | 每线程空闲对象数有上限 `capacity`，超出直接丢弃 | 内存占用有界，不无限常驻 |
 | C4 | 归还时由库调用复位钩子，把对象恢复到干净状态 | 脏数据不得进入下一次借出 |
 | C5 | 误用**始终强制校验**，不设开关、不分 Debug/Release | 立即抛异常 / 返回错误，不做未定义行为 |
 
 C5 覆盖：双重归还、跨线程归还、跨线程取用、关闭后取用、工厂返回空值、`capacity <= 0`。
 
-> 库无法在运行时拦截「归还后仍被外部引用」这一情况，由调用方保证：结束之后不得再持有该对象引用。八语言文档都要写明；Rust 的回调租约让这一条在编译期就不可能发生；Go 没有析构兜底，靠文档约定与 `AssertNoActiveLeases()` 兜底。
+> 库无法在运行时拦截「归还后仍被外部引用」这一情况，由调用方保证：结束之后不得再持有该对象引用。七语言文档都要写明；Rust 的回调租约让这一条在编译期就不可能发生；Go 没有析构兜底，靠文档约定与 `AssertNoActiveLeases()` 兜底。
 
 ## 3. 类型与命名映射
 
@@ -115,9 +113,9 @@ Java / C++ / Python 原样保留「跨线程归还 / 跨线程取用即抛异常
 ## 7. 明确排除项
 
 - **不写死任何性能数字**。Java 版 106.8MB → 53.4MB 那类实测只进 Java README 与 Release Notes，不进本规范，避免把 Python / Rust 绑死
-- 不把「命中时零新对象构造」写成八语言硬指标
+- 不把「命中时零新对象构造」写成七语言硬指标
 - 不规定各语言必须达到某个吞吐/延迟值
-- 不要求八语言 API 字面同名，只要求**行为契约**一致 + 本文件里的映射表可核对
+- 不要求七语言 API 字面同名，只要求**行为契约**一致 + 本文件里的映射表可核对
 
 ## 8. 逐语言勾选
 
@@ -162,7 +160,7 @@ Go 没有线程本地存储：goroutine 会在 OS 线程之间迁移，`thread_l
 
 ## 9. 版本与分发
 
-**版本节奏**：八语言各自独立版本号，不被已发布的 Java 版本锁住。Maven Central 与 PyPI 上传过的版本号永久不可覆盖，改动需升版本号；GitHub Release 同名 tag 也不建议重建。
+**版本节奏**：七语言各自独立版本号，不被已发布的 Java 版本锁住。Maven Central 与 PyPI 上传过的版本号永久不可覆盖，改动需升版本号；GitHub Release 同名 tag 也不建议重建。
 
 | 语言 | 包名 / 坐标 | 渠道 | 基线 |
 | --- | --- | --- | --- |
@@ -171,11 +169,10 @@ Go 没有线程本地存储：goroutine 会在 OS 线程之间迁移，`thread_l
 | Python | `gc-primitives`（导入名 `gc_primitives`） | PyPI | Python 3.9+ |
 | Rust | `gc-primitives`（导入名 `gc_primitives`） | crates.io（Trusted Publishing / OIDC） | Rust 1.70+，edition 2021 |
 | Go | `github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + `proxy.golang.org` / pkg.go.dev（**无中心仓库、无凭据**） | Go 1.21+ |
-| Node | `@rainbowcrr-sys/gc-primitives` | npm（OIDC Trusted Publishing） | Node 18+ / TypeScript 5.6 |
 | Swift | `GCPrimitives`（SwiftPM） | Git tag（**零注册零凭据**） | Swift 5.9+ |
 | Zig | `gc_primitives` | Git tag + Zig Index（**零注册零凭据**） | Zig 0.14.0 |
 
-许可证：八语言统一 Apache-2.0。
+许可证：七语言统一 Apache-2.0。
 
 > crates.io 例外：Trusted Publishing 只能配置在**已存在的 crate** 上，所以 Rust 首发需用一次性 API Token（只存 GitHub Secret，不进仓库文件），登记 trusted publisher 之后才切换为 OIDC。
 
@@ -189,7 +186,7 @@ rbc-monorepo/
 ├── SPEC.md / SPEC.en.md              本规范（中 / 英）
 ├── LICENSE                           Apache-2.0
 ├── build.gradle / settings.gradle / gradle.properties
-├── .github/workflows/                六条发布流水线 + Rust / Go / Node / Swift / Zig CI + 部署状态查询
+├── .github/workflows/                六条发布流水线 + Rust / Go / Swift / Zig CI + 部署状态查询
 ├── java/
 │   ├── gc-primitives/                Java 主库（单 jar）
 │   ├── example/                      可运行示例，不进发布物
@@ -198,40 +195,21 @@ rbc-monorepo/
 ├── python/gc-primitives/             gc_primitives / tests / pyproject / README 双语
 ├── rust/gc-primitives/               Cargo.toml / src / tests / README 双语
 ├── go/gc-primitives/                 go.mod / *.go / tests / README 双语
-├── node/gc-primitives/               package.json / src / test / README 双语
 ├── swift/gc-primitives/              Package.swift / Sources / Tests / README 双语
 └── zig/gc-primitives/                build.zig / src / tests / README 双语
 ```
 
-以后新项目 `test` 就是 `java/test/`、`cpp/test/`、`python/test/`、`rust/test/`、`go/test/`、`node/test/`、`swift/test/`、`zig/test/`，Gradle 在 `settings.gradle` 追加 `include(':java:test')` 与 `projectDir`。
+以后新项目 `test` 就是 `java/test/`、`cpp/test/`、`python/test/`、`rust/test/`、`go/test/`、`swift/test/`、`zig/test/`，Gradle 在 `settings.gradle` 追加 `include(':java:test')` 与 `projectDir`。
 
 **tag 格式**：库名含连字符，用双下划线分隔——`gc-primitives__java__v*`、`gc-primitives__python__v*`、`gc-primitives__cpp__v*`、`gc-primitives__rust__v*`。新项目则是 `test__java__v*` 等，绝不撞车。上传类流水线各自校验「tag 版本 == 代码声明版本」，不一致拒绝发布。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。
 
 **Go tag 例外（硬性规则）**：多模块仓库里子目录模块的版本 tag 必须带目录前缀，Go 工具链不认双下划线格式，所以 Go 用 `go/gc-primitives/v0.1.0`（新项目 `go/test/v0.1.0`）。用户写 `go get ...@v0.1.0` 时，go 命令会自动去找这个带前缀的 tag。Go 没有上传步骤：打 tag = 发布，工作流只负责触发 `proxy.golang.org` 缓存与 pkg.go.dev 索引，并用「使用方」job 真实 `go get` + `go run` 验证。
 
-## 11. 新增三语言补充规范（Node / Swift / Zig）
+## 11. 新增两语言补充规范（Swift / Zig）
 
-Java、C++、Python、Rust、Go 的契约正文见第 1–10 节。本节补记后加的三种实现：它们**同样对齐 C1–C5**，但因运行时模型不同，C2「线程归属」都是明确标注的变体，不假装严格移植。为便于阅读，§3 / §4 / §8 的主映射表保持五列，三语言的逐项映射集中在本节。
+Java、C++、Python、Rust、Go 的契约正文见第 1–10 节。本节补记后加的两种实现：它们**同样对齐 C1–C5**，但因运行时模型不同，C2「线程归属」都是明确标注的变体，不假装严格移植。为便于阅读，§3 / §4 / §8 的主映射表保持五列，两语言的逐项映射集中在本节。
 
-### 11.1 Node / TypeScript（安全契约优先）
-
-**本轮范围**：只做安全契约（C1–C5 强制误用检测、有界复用、归还复位、诊断计数）。异步工厂、`withLease` 回调、Worker Threads 专项测试、ESM + CJS 双格式留到后续版本。
-
-| SPEC 契约 | Node 处理 |
-| --- | --- |
-| C1 显式归还 | `lease.return()` / `close()` / `dispose()` / `using`；**无析构兜底**，靠 `assertNoActiveLeases()` 发现未归还 |
-| C2 关闭后借用 | `pool.close()` 拒借并清空空闲；跨 worker 误用不做运行时检测，约定「每个 worker 一个 Pool」 |
-| C3 有界 | 空闲数组上限 `capacity`（默认 16），超出直接丢弃 |
-| C4 归还复位 | `recycler` 抛错 → 对象丢弃、错误透传、计数照常结算，绝不回池 |
-| C5 强制误用检测 | 双重归还、归还后读 `value`、工厂返回 `null/undefined`、`capacity <= 0`、钩子非函数 → 一律 `PoolStateError`；不用 `process.exit`、无开关 |
-
-**API 映射**：`borrow()` / `stats()` / `capacity` / `assertNoActiveLeases()` / `PoolStateError` / `DISPOSE`（`Symbol.dispose` 兼容层，Node 18 用 well-known symbol 兜底）。`stats()` 返回 `{ capacity, idle, active, borrowCount, returnCount, created, closed }`。
-
-**并发模型**：事件循环单线程，池内无锁；`worker_threads` 各自独立 V8 堆，池必须 per-worker。不做 `FinalizationRegistry` 泄漏兜底（GC 时机不确定会引入 flaky），改用确定性计数断言。
-
-**验证**：CI 真跑 Node 18 / 20 / 22，13 项 `node:test` 直接 import 编译后的 `dist/`（即真实发布产物），另做 `tsc --noEmit`。
-
-### 11.2 Swift（ARC 分配优化）
+### 11.1 Swift（ARC 分配优化）
 
 **定位**：Swift 用 ARC，不是 GC。收益口径只写「减少堆分配/释放与 retain-release 次数、复用后缓存局部性更好」，不写「省 GC」。
 
@@ -243,7 +221,7 @@ Java、C++、Python、Rust、Go 的契约正文见第 1–10 节。本节补记�
 
 **验证**：macOS（Xcode Swift）+ Ubuntu（Swift 5.9）各跑 12 项 XCTest，覆盖 C1–C5、并发与 deinit 兜底。
 
-### 11.3 Zig（无 GC、无隐式分配）
+### 11.2 Zig（无 GC、无隐式分配）
 
 **定位**：所有内存来自调用方显式 `std.mem.Allocator`，命中空闲槽时完全不调用 `allocator.create`。`Pool(comptime T)` 是编译期泛型，零虚表、零类型擦除、零运行时开销。
 
@@ -255,15 +233,14 @@ Java、C++、Python、Rust、Go 的契约正文见第 1–10 节。本节补记�
 
 **验证**：Zig 0.14.0 真跑 `zig test`（Debug + ReleaseSafe）与 `zig build test`，11 项测试全部通过且无内存泄漏。测试只用局部状态，`zig test` 并发执行 test block 不串数据。
 
-### 11.4 分发与 tag
+### 11.3 分发与 tag
 
 | 语言 | 包名 / 路径 | 渠道 | 是否需要注册 |
 | --- | --- | --- | --- |
-| Node | `@rainbowcrr-sys/gc-primitives` | npm（OIDC Trusted Publishing） | ✅ npm 账号；首发需一次性 Granular Token |
 | Swift | `GCPrimitives`（SwiftPM） | Git tag | ❌ 零注册零凭据 |
 | Zig | `gc_primitives` | Git tag + Zig Index | ❌ 零注册零凭据 |
 
-tag：`node-gc-primitives-v0.1.0`、`swift/gc-primitives/v0.1.0`、`zig/gc-primitives/v0.1.0`。Swift / Zig 与 Go 同为子目录包，tag 必须带目录前缀；npm 用简单前缀。
+tag：`swift/gc-primitives/v0.1.0`、`zig/gc-primitives/v0.1.0`。Swift / Zig 与 Go 同为子目录包，tag 必须带目录前缀。
 
-**本轮状态**：三种实现只落代码与 CI，**未发版、未打 tag、未写任何凭据**。
+**本轮状态**：两种实现只落代码与 CI，**未发版、未打 tag、未写任何凭据**。
 每个 Markdown 都有一份中文（默认文件名）与一份英文（`.en.md`），两版顶部互相链接。
