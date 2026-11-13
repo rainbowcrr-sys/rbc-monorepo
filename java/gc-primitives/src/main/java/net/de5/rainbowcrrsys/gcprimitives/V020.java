@@ -354,7 +354,7 @@ public final class V020 {
         }
     }
 
-    /** 极简 YAML 子集：缩进映射 + 标量，扁平化为 "a.b.c" -> 值。零依赖。 */
+    /** 极简 YAML 子集：缩进映射 + 标量，扁平化为 {@code "a.b.c"} 形式的键，映射到字符串值。零依赖。 */
     public static Map<String, String> parseYamlSubset(String text) {
         Map<String, String> out = new LinkedHashMap<>();
         List<String> pathKeys = new ArrayList<>();
