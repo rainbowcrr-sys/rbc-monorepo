@@ -116,7 +116,7 @@ The standalone distribution repo https://github.com/rainbowcrr-sys/gc-primitives
 - **Monorepo release tag**: `swift/gc-primitives/v0.2.0`, with a source tarball attached to the Release
 - **Verification page**: https://swiftpackageindex.com/rainbowcrr-sys/gc-primitives-swift (first-time indexing can be requested at https://swiftpackageindex.com/add-a-package )
 
-> **Why a second repository**: SwiftPM requires `Package.swift` at the repository root and only accepts plain semantic-version tags (`v0.1.0`); it does not understand subdirectory prefixes like `swift/gc-primitives/v0.1.0`, and `v0.1.0` was already taken by the first Java release. Both copies hold identical code and are synced at release time.
+> **Why a second repository**: SwiftPM requires `Package.swift` at the repository root and only accepts plain semantic-version tags (e.g. `v0.2.0`); it does not understand subdirectory prefixes like `swift/gc-primitives/v0.2.0`, and the monorepo `v0.1.0` tag was already taken by the first Java release. A separate repo therefore carries the plain `v0.2.0` tag. Both copies hold identical code and are synced at release time.
 
 No registration, no token, no credentials.
 

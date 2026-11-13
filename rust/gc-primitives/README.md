@@ -111,7 +111,7 @@ crates.io：`gc-primitives`，版本 `0.2.0`，Apache-2.0，零依赖。
 
 发布分两阶段，因为 **crates.io 的 Trusted Publishing 只能给已存在的 crate 配置**：
 
-1. **首次发布**：用 crates.io 上生成的、带 `publish-new` 权限的 API Token（只存 GitHub Secret `CARGO_REGISTRY_TOKEN`，不进仓库文件），打 `gc-primitives__rust__v0.1.0` 让工作流完成首发
+1. **首次发布（历史，`0.1.0`）**：用 crates.io 上生成的、带 `publish-new` 权限的 API Token（只存 GitHub Secret `CARGO_REGISTRY_TOKEN`，不进仓库文件），打 `gc-primitives__rust__v0.1.0` 让工作流完成首发；**当前 `0.2.0` 及以后**打 `gc-primitives__rust__v0.2.0` 即自动 OIDC 发布，零长期凭据
 2. **之后**：在 crate 的 Settings → Trusted Publishing 登记 GitHub 发布者，工作流改用一次性 OIDC 身份换临时凭证，长效 Token 即可删除
 
 `publish-rust.yml` 对两阶段都兼容：优先 OIDC，失败时回退 Secret。登记字段为 owner `rainbowcrr-sys`、repository `rbc-monorepo`、workflow `publish-rust.yml`、environment `crates-io`。

@@ -110,7 +110,7 @@ crates.io: `gc-primitives`, version `0.2.0`, Apache-2.0, zero dependencies.
 
 Publishing happens in two stages, because **crates.io Trusted Publishing can only be configured for a crate that already exists**:
 
-1. **First release**: use a crates.io API token with `publish-new` scope (stored only as the GitHub Secret `CARGO_REGISTRY_TOKEN`, never in a repository file) and push the `gc-primitives__rust__v0.1.0` tag
+1. **First release (historical, `0.1.0`)**: use a crates.io API token with `publish-new` scope (stored only as the GitHub Secret `CARGO_REGISTRY_TOKEN`, never in a repository file) and push the `gc-primitives__rust__v0.1.0` tag; **current `0.2.0` and later** publish automatically via OIDC by pushing `gc-primitives__rust__v0.2.0` — no long-lived credentials
 2. **Afterwards**: register the GitHub trusted publisher in the crate's Settings → Trusted Publishing; the workflow then uses short-lived OIDC credentials and the long-lived token can be deleted
 
 `publish-rust.yml` supports both stages: it prefers OIDC and falls back to the Secret when OIDC is not configured yet. Registration values: owner `rainbowcrr-sys`, repository `rbc-monorepo`, workflow `publish-rust.yml`, environment `crates-io`.

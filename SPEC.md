@@ -203,7 +203,7 @@ rbc-monorepo/
 
 **tag 格式**：库名含连字符，用双下划线分隔——`gc-primitives__java__v*`、`gc-primitives__python__v*`、`gc-primitives__cpp__v*`、`gc-primitives__rust__v*`。新项目则是 `test__java__v*` 等，绝不撞车。上传类流水线各自校验「tag 版本 == 代码声明版本」，不一致拒绝发布。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。
 
-**Go tag 例外（硬性规则）**：多模块仓库里子目录模块的版本 tag 必须带目录前缀，Go 工具链不认双下划线格式，所以 Go 用 `go/gc-primitives/v0.1.0`（新项目 `go/test/v0.1.0`）。用户写 `go get ...@v0.1.0` 时，go 命令会自动去找这个带前缀的 tag。Go 没有上传步骤：打 tag = 发布，工作流只负责触发 `proxy.golang.org` 缓存与 pkg.go.dev 索引，并用「使用方」job 真实 `go get` + `go run` 验证。
+**Go tag 例外（硬性规则）**：多模块仓库里子目录模块的版本 tag 必须带目录前缀，Go 工具链不认双下划线格式，所以 Go 用 `go/gc-primitives/v0.2.0`（新项目 `go/test/v0.2.0`）。用户写 `go get ...@v0.2.0` 时，go 命令会自动去找这个带前缀的 tag。Go 没有上传步骤：打 tag = 发布，工作流只负责触发 `proxy.golang.org` 缓存与 pkg.go.dev 索引，并用「使用方」job 真实 `go get` + `go run` 验证。
 
 ## 11. 新增两语言补充规范（Swift / Zig）
 
@@ -240,13 +240,13 @@ Java、C++、Python、Rust、Go 的契约正文见第 1–10 节。本节补记�
 | Swift | `GCPrimitives`（SwiftPM） | 独立分发仓库 `gc-primitives-swift` 的 Git tag | ❌ 零注册零凭据 |
 | Zig | `gc_primitives` | GitHub Release tarball + Zig Index | ❌ 零注册零凭据 |
 
-**Swift 的硬性规则**：SwiftPM 要求 `Package.swift` 在**仓库根**，版本 tag 只能是纯语义化版本（`0.1.0` / `v0.1.0`），**不接受** `swift/gc-primitives/v0.1.0` 这类路径前缀；而 `v0.1.0` 已被 Java 首发占用，不能复用。因此 Swift 源码保留在 monorepo 的 `swift/gc-primitives/`（主副本 + CI），另镜像到独立公开仓库 `rainbowcrr-sys/gc-primitives-swift`（根放 `Package.swift`）并在那里打 `v0.1.0`。monorepo 的 `swift/gc-primitives/v0.1.0` 只用于触发发布流水线与挂 Release 资产。两个仓库都零注册零凭据。
+**Swift 的硬性规则**：SwiftPM 要求 `Package.swift` 在**仓库根**，版本 tag 只能是纯语义化版本（如 `v0.2.0`），**不接受** `swift/gc-primitives/v0.2.0` 这类路径前缀；而 monorepo 的 `v0.1.0` 当初已被 Java 首发占用，不能复用。因此 Swift 源码保留在 monorepo 的 `swift/gc-primitives/`（主副本 + CI），另镜像到独立公开仓库 `rainbowcrr-sys/gc-primitives-swift`（根放 `Package.swift`）并在那里打纯 `v0.2.0`。monorepo 的 `swift/gc-primitives/v0.2.0` 只用于触发发布流水线与挂 Release 资产。两个仓库都零注册零凭据。
 
-**Zig 的硬性规则**：Zig 没有中心仓库，但下游用 `zig fetch` 拉取 tarball，包根必须有 `build.zig.zon`（`.name` / `.version` / `.fingerprint` / `.minimum_zig_version` / `.paths`），且 `build.zig` 要用 `addModule` 暴露 module，否则下游 `@import` 拿不到。首发补齐 zon，在 `zig/gc-primitives/v0.1.0` 打 tag，Release 挂只含包目录的 tarball；CI 用 `zig fetch` 取到 hash 后再建一个独立消费包真编译运行，证明该 tarball 能被当依赖拉。仓库已加 `zig-package` topic，Zig Index 自动收录。
+**Zig 的硬性规则**：Zig 没有中心仓库，但下游用 `zig fetch` 拉取 tarball，包根必须有 `build.zig.zon`（`.name` / `.version` / `.fingerprint` / `.minimum_zig_version` / `.paths`），且 `build.zig` 要用 `addModule` 暴露 module，否则下游 `@import` 拿不到。首发（`0.1.0`）补齐 zon；当前 `0.2.0` 沿用同一结构，在 `zig/gc-primitives/v0.2.0` 打 tag，Release 挂只含包目录的 tarball；CI 用 `zig fetch` 取到 hash 后再建一个独立消费包真编译运行，证明该 tarball 能被当依赖拉。仓库已加 `zig-package` topic，Zig Index 自动收录。
 
-tag：monorepo `swift/gc-primitives/v0.1.0` 与 `zig/gc-primitives/v0.1.0`；SwiftPM 侧另有 `gc-primitives-swift` 的 `v0.1.0`。
+tag：monorepo `swift/gc-primitives/v0.2.0` 与 `zig/gc-primitives/v0.2.0`；SwiftPM 侧另有 `gc-primitives-swift` 的 `v0.2.0`。另有一个纯 `v0.2.0` tag 作为 zigpkg.dev 等按仓库收录的索引站的 semver 锚点，不触发任何流水线。
 
-**本轮状态**：两版 `0.1.0` 均已发布，CI 全绿；未写任何凭据。
+**当前状态**：七语言 `0.2.0` 均已发布，CI 全绿；`0.1.x` 全系列不推荐使用；未写任何凭据。
 每个 Markdown 都有一份中文（默认文件名）与一份英文（`.en.md`），两版顶部互相链接。
 
 ## 12. 0.2.0 能力域（纯增量）

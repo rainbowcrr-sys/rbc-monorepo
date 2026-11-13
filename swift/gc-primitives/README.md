@@ -116,7 +116,7 @@ CI 在 **macOS（Xcode Swift）与 Ubuntu Linux（Swift 5.9+）** 两套环境�
 - **monorepo 发布 tag**：`swift/gc-primitives/v0.2.0`，Release 附源码 tarball
 - **验证页**：https://swiftpackageindex.com/rainbowcrr-sys/gc-primitives-swift （首次收录可在 https://swiftpackageindex.com/add-a-package 提交）
 
-> **为什么多一个仓库**：SwiftPM 要求 `Package.swift` 在仓库根，且版本 tag 只能是纯语义化版本（`v0.1.0`），不认 `swift/gc-primitives/v0.1.0` 这种子目录前缀；而 `v0.1.0` 已被 Java 首发占用，不能复用。两处代码内容一致，发版时同步。
+> **为什么多一个仓库**：SwiftPM 要求 `Package.swift` 在仓库根，且版本 tag 只能是纯语义化版本（如 `v0.2.0`），不认 `swift/gc-primitives/v0.2.0` 这种子目录前缀；而 monorepo 的 `v0.1.0` 当初已被 Java 首发占用，不能复用，因此另开独立仓库并在这里打纯 `v0.2.0`。两处代码内容一致，发版时同步。
 
 零注册、零 token、零凭据。
 
