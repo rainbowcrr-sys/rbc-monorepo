@@ -1,6 +1,8 @@
 # gc-primitives · Python 版
 
 > 中文 · [English](README.en.md)
+> ⚠️ **0.1.x 不推荐使用，请使用 0.2.0**（旧版缺少并发、诊断、配置与可观测能力，且不再获得修复）。
+
 
 > 目录：`python/gc-primitives/`（顶层按语言、内层按项目）。
 

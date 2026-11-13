@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(gc_primitives_cpp VERSION 0.1.1 LANGUAGES CXX)
+project(gc_primitives_cpp VERSION 0.2.0 LANGUAGES CXX)
 
 # header-only INTERFACE 库，C++17
 add_library(gc_primitives INTERFACE)
@@ -15,10 +15,16 @@ option(GC_PRIMITIVES_BUILD_BENCH "编译 Google Benchmark 基准（需安装 ben
 
 if(GC_PRIMITIVES_BUILD_TESTS)
     enable_testing()
+    find_package(Threads REQUIRED)
     add_executable(contract_test tests/contract_test.cpp)
     target_link_libraries(contract_test PRIVATE gc_primitives)
     target_compile_options(contract_test PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME contract_test COMMAND contract_test)
+
+    add_executable(v020_test tests/v020_test.cpp)
+    target_link_libraries(v020_test PRIVATE gc_primitives Threads::Threads)
+    target_compile_options(v020_test PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME v020_test COMMAND v020_test)
 endif()
 
 if(GC_PRIMITIVES_BUILD_BENCH)

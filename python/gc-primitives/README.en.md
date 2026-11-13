@@ -1,6 +1,8 @@
 # gc-primitives · Python Port
 
 > [中文](README.md) · English
+> ⚠️ **0.1.x is deprecated — use 0.2.0** (older releases lack the concurrency, diagnostics, configuration and observability capabilities and receive no further fixes).
+
 
 > Directory: `python/gc-primitives/` (top level by language, inner level by project).
 

@@ -3,6 +3,8 @@
 > [中文](README.md) · English
 
 A Swift port of the same conceptual contract as the Java / C++ / Python / Rust / Go / Zig implementations. See section 11.1 of the repository-root [SPEC.en.md](../../SPEC.en.md) ([中文](../../SPEC.md)).
+> ⚠️ **0.1.x is deprecated — use 0.2.0** (older releases lack the concurrency, diagnostics, configuration and observability capabilities and receive no further fixes).
+
 
 ## Why Swift needs a pool at all: ARC, not GC
 

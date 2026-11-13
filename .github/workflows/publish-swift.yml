@@ -38,6 +38,8 @@ jobs:
   release:
     needs: contract-tests
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,7 +53,7 @@ jobs:
           if [ "$EVENT_NAME" = "push" ] && [[ "$TAG_NAME" == swift/gc-primitives/v* ]]; then
             V="${TAG_NAME#swift/gc-primitives/v}"
           else
-            V="0.1.0"
+            V=$(sed -n 's/^version=//p' gradle.properties)
           fi
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "Swift version: $V"
@@ -91,20 +93,22 @@ jobs:
     name: SwiftPM consumer (macOS)
     runs-on: macos-latest
     needs: release
+    env:
+      V: ${{ needs.release.outputs.version }}
     steps:
-      - name: Build a separate SwiftPM package against v0.1.0
+      - name: Build a separate SwiftPM package against the released version
         run: |
           set -e
           rm -rf /tmp/swift-consumer && mkdir -p /tmp/swift-consumer/Sources/consumer
           cd /tmp/swift-consumer
-          cat > Package.swift <<'EOF'
+          cat > Package.swift <<EOF
           // swift-tools-version:5.9
           import PackageDescription
           let package = Package(
               name: "consumer",
               platforms: [.macOS(.v10_15)],
               dependencies: [
-                  .package(url: "https://github.com/rainbowcrr-sys/gc-primitives-swift.git", from: "0.1.0")
+                  .package(url: "https://github.com/rainbowcrr-sys/gc-primitives-swift.git", from: "${V}")
               ],
               targets: [
                   .executableTarget(
@@ -128,7 +132,9 @@ jobs:
           try lease.value.bytes.append(contentsOf: [1, 2, 3])
           try lease.close()
           try pool.assertNoActiveLeases()
-          print("Swift consumer OK")
+          let j = V020.Metrics().toJSON()
+          if !j.contains("\"borrow_count\"") { fatalError("0.2.0 capability missing from distribution repo") }
+          print("Swift 0.2.0 consumer OK · \(j.count) bytes of metrics JSON")
           EOF
           set +e
           swift build > /tmp/swift-consumer.log 2>&1

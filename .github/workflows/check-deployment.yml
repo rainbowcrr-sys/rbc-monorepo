@@ -10,7 +10,7 @@ on:
       version:
         description: '要探测的已发布版本'
         required: false
-        default: '0.1.1'
+        default: '0.2.0'
         type: string
 
 jobs:

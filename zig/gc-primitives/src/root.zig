@@ -1,5 +1,9 @@
 const std = @import("std");
 
+/// 0.2.0 增量能力层（SPEC 第 12 章）。纯新增，不改动下方 Pool 的任何行为。
+/// 显式 @import 让 v020.zig 的测试块进入 zig build test 的引用图。
+pub const v020 = @import("v020.zig");
+
 /// Contract violations. Nothing calls @panic, nothing silently ignores misuse,
 /// and there is no "strict mode" switch. This is the Zig port of C5 in SPEC.md.
 pub const PoolError = error{
@@ -396,4 +400,10 @@ test "default capacity is 16" {
     var lease = try pool.borrow();
     try lease.close();
     try pool.assertNoActiveLeases();
+}
+
+// Zig 默认只收集 root 文件的 test 声明；显式 test 引用把 0.2.0 能力层
+// （v020.zig）的契约测试一并拉入 zig test / zig build test 的测试集。
+test {
+    _ = @import("v020.zig");
 }

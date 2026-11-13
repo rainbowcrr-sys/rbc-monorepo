@@ -10,13 +10,15 @@ The first version does exactly one thing: it turns "object pool + reuse context"
 
 | Language | Project directory | Import | Distribution | Status |
 | --- | --- | --- | --- | --- |
-| Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` published; `0.1.1` is a pure engineering refactor |
-| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>` (header-only) | GitHub Release / vcpkg / Conan | ✅ `0.1.1` Release published (`0.1.0` still downloadable) |
-| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.1` published (`0.1.0` still installable) |
-| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` published; Trusted Publishing pending, one-time token in use |
-| Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev (no registry, no credentials) | Implemented, CI green; first tag pending indexing |
-| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives` (SwiftPM) | Standalone repo [`gc-primitives-swift`](https://github.com/rainbowcrr-sys/gc-primitives-swift) + Git tag (no registration, no credentials) | ✅ `v0.1.0` published, usable as a SwiftPM dependency |
-| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | GitHub Release tarball + Zig Index (no registration, no credentials) | ✅ `0.1.0` published, verified via a real `zig fetch` consumer |
+| Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.2.0` |
+| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>` (header-only) | GitHub Release / vcpkg / Conan | ✅ `0.2.0` |
+| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.2.0` |
+| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.2.0` |
+| Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev (no registry, no credentials) | ✅ `0.2.0` |
+| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives` (SwiftPM) | Standalone repo [`gc-primitives-swift`](https://github.com/rainbowcrr-sys/gc-primitives-swift) + Git tag (no registration, no credentials) | ✅ `0.2.0` |
+| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | GitHub Release tarball + Zig Index (no registration, no credentials) | ✅ `0.2.0` |
+
+> ⚠️ **The entire 0.1.x line is deprecated.** `0.1.0` / `0.1.1` artifacts remain downloadable (registries are immutable — they cannot be deleted or rewritten), but they **lack the concurrency, diagnostics, configuration and observability added in 0.2.0 and receive no further fixes**. Use `0.2.0`.
 
 Each language has its own independent version number; all are Apache-2.0. Benefit claims are kept separate: Java lowers allocation rate, C++ and Rust cut heap allocations, Go cuts heap allocations with zero credentials, Swift cuts ARC heap allocations and retain-release traffic, Zig performs zero `allocator.create` on a free-slot hit, and **the Python port makes no performance claim** (a pure semantic port; see [`python/gc-primitives/README.en.md`](python/gc-primitives/README.en.md)). The Rust port additionally promises **zero `unsafe`, zero dependencies**; the Go port is a concurrency variant of C2/C3 (no thread-local storage), see section 8.2 of `SPEC.en.md`; Swift / Zig are in section 11.
 

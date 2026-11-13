@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '要索引的版本（如 v0.1.0）'
+        description: '要索引的版本（如 v0.2.0）'
         required: false
-        default: 'v0.1.0'
+        default: 'v0.2.0'
         type: string
 
 permissions:

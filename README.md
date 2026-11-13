@@ -10,13 +10,15 @@
 
 | 语言 | 项目目录 | 导入 | 分发 | 状态 |
 | --- | --- | --- | --- | --- |
-| Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.1.0` 已发布，`0.1.1` 为纯工程重构版 |
-| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>`（header-only） | GitHub Release / vcpkg / Conan | ✅ `0.1.1` 已发 Release（`0.1.0` 仍可下载） |
-| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.1.1` 已发布（`0.1.0` 仍可安装） |
-| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.1.0` 已发布；Trusted Publishing 待登记，当前用一次性 Token |
-| Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev（无中心仓库、无凭据） | 实现完成且 CI 全绿，首发 tag 待索引 |
-| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives`（SwiftPM） | 独立仓库 [`gc-primitives-swift`](https://github.com/rainbowcrr-sys/gc-primitives-swift) + Git tag（零注册零凭据） | ✅ `v0.1.0` 已发布，SwiftPM 可直接依赖 |
-| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | GitHub Release tarball + Zig Index（零注册零凭据） | ✅ `0.1.0` 已发布，`zig fetch` 消费验证通过 |
+| Java 11 | [`java/gc-primitives/`](java/gc-primitives/) | `net.de5.rainbowcrrsys:gc-primitives` | Maven Central | ✅ `0.2.0` |
+| C++17 | [`cpp/gc-primitives/`](cpp/gc-primitives/) | `#include <rbc/gc.hpp>`（header-only） | GitHub Release / vcpkg / Conan | ✅ `0.2.0` |
+| Python 3.9+ | [`python/gc-primitives/`](python/gc-primitives/) | `from gc_primitives import Pool` | PyPI | ✅ `0.2.0` |
+| Rust 1.70+ | [`rust/gc-primitives/`](rust/gc-primitives/) | `use gc_primitives::Pool` | crates.io | ✅ `0.2.0` |
+| Go 1.21+ | [`go/gc-primitives/`](go/gc-primitives/) | `go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives` | Git tag + pkg.go.dev（无中心仓库、无凭据） | ✅ `0.2.0` |
+| Swift 5.9+ | [`swift/gc-primitives/`](swift/gc-primitives/) | `GCPrimitives`（SwiftPM） | 独立仓库 [`gc-primitives-swift`](https://github.com/rainbowcrr-sys/gc-primitives-swift) + Git tag（零注册零凭据） | ✅ `0.2.0` |
+| Zig 0.14 | [`zig/gc-primitives/`](zig/gc-primitives/) | `gc_primitives` | GitHub Release tarball + Zig Index（零注册零凭据） | ✅ `0.2.0` |
+
+> ⚠️ **0.1.x 全系列不推荐使用**。各渠道里的 `0.1.0` / `0.1.1` 制品仍可下载（平台不可变、无法删除或改写），但**缺少 0.2.0 的并发、诊断、配置与可观测能力，且不再获得任何修复**。请一律使用 `0.2.0`。
 
 七语言各自独立版本号，统一 Apache-2.0。收益口径分开写：Java 压分配速率、C++ 与 Rust 少堆分配、Go 更少的堆分配且零凭据、Swift 减少 ARC 堆分配与 retain-release、Zig 命中空闲槽时零 `allocator.create`、**Python 版不承诺性能收益**（纯语义移植，原因见 [`python/gc-primitives/README.md`](python/gc-primitives/README.md)）。Rust 版额外承诺 **零 `unsafe`、零依赖**；Go 版是 C2/C3 的并发变体（无线程本地存储），见 `SPEC.md` 第 8.2 节；Swift / Zig 见第 11 章。
 

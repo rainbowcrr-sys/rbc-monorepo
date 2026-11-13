@@ -248,3 +248,86 @@ tag：monorepo `swift/gc-primitives/v0.1.0` 与 `zig/gc-primitives/v0.1.0`；Swi
 
 **本轮状态**：两版 `0.1.0` 均已发布，CI 全绿；未写任何凭据。
 每个 Markdown 都有一份中文（默认文件名）与一份英文（`.en.md`），两版顶部互相链接。
+
+## 12. 0.2.0 能力域（纯增量）
+
+0.2.0 是**纯增量版本**：现有 `Pool` / `Lease` 的构造签名与默认行为一行不改，已发布的 0.1.x 代码零改动即可继续运行。以下能力全部以「新增类型 / 可选参数 / 可选加载器」形式提供。
+
+### 12.1 能力清单与合并口径
+
+| 能力 | 交付形态 | 说明 |
+| --- | --- | --- |
+| 并发三件套 | Python `AsyncPool` / `borrow_async()` / `async with`；Rust `SharedPool`(`Send + Sync`) 与 `LocalPool`；Go `Borrow(ctx)` | 原同步 / thread-local / 无 context API 全部保留 |
+| 满池策略 | `on_full`: `drop_oldest` / `drop_largest` / `block` / `reject` / `grow` + `block_timeout_ms` / `max_overflow` | 默认行为不变 |
+| 泄漏检测 | `detect_leaks()` 手动触发 + 借出采样 | **不起后台线程、零常驻开销** |
+| 生命周期钩子 | `on_create` / `on_borrow` / `on_return` / `on_evict` / `on_destroy` / `clear_sensitive` | 归还时清敏感数据 |
+| 预热 | `prewarm(n)` / 并行预热变体 | — |
+| 分片 | `ShardedPool` | — |
+| 两级池 | `TwoLevelPool` | — |
+| 池快照 | `snapshot()` 返回 config + stats + active_leases | — |
+| 内存作用域 | `memory_scope(name)`，回调 + JSON 输出 | `GC_PRIMITIVES_DIAG` 未设时为空操作，零分配零开销 |
+| 健康指标 | `stats()` / `metrics()` **统一 JSON 同构快照** | 七语言字段名完全一致；不内置 Prometheus / OTel |
+| 统一配置 | 统一 YAML（snake_case）+ schema 校验 + `PoolManager` + 环境变量覆盖 + 级联查找 + 热重载 | 加载器随主包同发，不新增版本号 |
+| 框架适配 | 各 README 的零依赖薄适配示例 | 主包不依赖任何框架 |
+
+**合并口径**：原清单里「统一 metrics/telemetry」与「健康指标 API」是同一能力域，只做一套；「动态调参」并入配置文件的运行时重载，不单独实现。原「框架集成」含 Node（Express/Fastify），按已删的 `node/` 处理，**只做七语言**。
+
+### 12.2 组合矩阵（写死，不可自由嵌套）
+
+| | 单独使用 | 再分片 | 作 TwoLevelPool 的 L2 |
+| --- | --- | --- | --- |
+| `LocalPool`（Rust thread-local） | ✅ | ❌ | ❌ |
+| `SharedPool`（Rust `Send + Sync`） | ✅ | ✅ | ✅ |
+| 其余语言的基础 `Pool` | ✅ | ✅ | ✅ |
+
+`TwoLevelPool` 只建在 `SharedPool`（或等价的共享池）之上；CI 按此矩阵跑，禁止组合在构造期直接报错。
+
+### 12.3 统一 metrics JSON 同构快照（字段名逐字一致）
+
+```json
+{
+  "borrow_count": 0, "return_count": 0, "active_leases": 0,
+  "pool_hits": 0, "pool_misses": 0, "hit_rate": 0.0,
+  "wait_time_p50": 0.0, "wait_time_p99": 0.0, "wait_time_max": 0.0,
+  "object_lifetime_p50": 0.0, "eviction_count": 0, "leak_count": 0,
+  "created": 0, "idle": 0, "capacity": 0, "closed": false
+}
+```
+
+七语言 `stats()` / `metrics()` 必须返回同名字段；没有采集能力的实现补 `0` / `0.0`，不许省略字段。
+
+### 12.4 统一 YAML 与加载器
+
+- **格式**：七语言统一 YAML，字段名**统一 snake_case**，配置复制即可跨语言迁移
+- **依赖**：核心零依赖 + 可选加载器（内置极简 YAML 子集解析，只支持示例里的标量与二层嵌套键，不支持 YAML 全集）；不启用加载器也能用核心池
+- **交付**：加载器**随主包同发、不新增版本号**（Python extras / Rust feature / C++ 可选头 / 其余同仓子模块），仍是 7 个 `0.2.0`
+- **校验**：`max_size <= 0`、`on_full` 非法值、未知键 → 加载期报错并列出合法值
+- **优先级**：环境变量 `GC_PRIMITIVES__<POOL>__<KEY>` > 配置文件 > 代码默认值
+- **级联查找**：`./gc-primitives.yaml` → `./config/gc-primitives.yaml` → `~/.config/gc-primitives.yaml` → `/etc/gc-primitives.yaml`，`GC_PRIMITIVES_CONFIG` 可覆盖
+- **多池**：`PoolManager.from_config()` 统一创建 / 关闭
+- **热重载分档**（连热重载一起做，但机制不同，如实标注）：
+  - Python / Rust / Go / Java：文件变更自动监听生效
+  - C++ / Zig / Swift：提供 `reload()` + 文件 mtime 检查**手动触发**，标成降级档
+
+### 12.5 内存作用域与诊断输出
+
+- **Rust 保持零 unsafe**：`memory_scope` 用差值型（池内借还/新建计数 + 可选自定义 allocator 包装），**不挂** `#[global_allocator]`；精度低于字节级，零依赖承诺不破
+- **输出**：默认 stderr，可传回调、可写 JSON 文件
+- **开关**：`GC_PRIMITIVES_DIAG` 未设时为空操作。C++ / Rust 靠宏与 feature，Python / Go / Java 靠运行期判断，语义一致、机制不同
+- **嵌套**：`outer` / `inner` 各自统计，差值归属 innermost
+
+### 12.6 泄漏检测与借出采样
+
+- 只暴露 `detect_leaks()` 与借出栈快照，**不起后台线程、零常驻开销**
+- **统一最小集**：七语言都给 `lease_id` / `borrowed_at` / 超时判定 / 用户 `tag`
+- 调用栈快照只在 Python / Go / Java 自带；Rust / C++ / Swift / Zig 不强制（避免与零依赖 / header-only 冲突）
+
+### 12.7 版本与旧版政策
+
+七语言同步升 `0.2.0`。文档主表**只列 0.2.0**，明确标注 **0.1.x 不推荐使用**；旧 tag 不删、不打广告。已发布到 PyPI / crates.io / Maven Central 的 0.1.x 制品**不可变、无法追加标注**，只能通过新版文档与 Release 说明告知；GitHub Release 的 0.1.x 描述已追加不推荐提示。
+
+### 12.8 验收
+
+四层全验：七语言 CI 全绿 → 同一份契约用例跨语言对齐 → 真下载 / 真安装后写使用方代码跑通 → 全仓敏感扫描 + 双语文档校验。
+
+每个 Markdown 都有一份中文（默认文件名）与一份英文（`.en.md`），两版顶部互相链接。

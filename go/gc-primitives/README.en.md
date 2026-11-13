@@ -3,6 +3,8 @@
 > [中文](README.md) · English
 
 A Go port of the same conceptual contract as the Java / C++ / Python / Rust implementations. See the repository-root [SPEC.en.md](../../SPEC.en.md) ([中文](../../SPEC.md)) for the behavioral specification.
+> ⚠️ **0.1.x is deprecated — use 0.2.0** (older releases lack the concurrency, diagnostics, configuration and observability capabilities and receive no further fixes).
+
 
 > Directory: `go/gc-primitives/` (top level by language, inner level by project).
 > **Go has no central registry, no account, no API token, and no upload step** — a module version is just a Git tag. `go get` pulls source directly from GitHub, and pkg.go.dev indexes it automatically from `proxy.golang.org`.

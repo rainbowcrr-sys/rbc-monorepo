@@ -33,6 +33,9 @@ use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
+/// 0.2.0 增量能力层（纯新增；核心 `Pool` 一行未改）。
+pub mod v020;
+
 /// 池契约被破坏时返回的错误；Rust 版全程 `Result`，不使用 `panic!` 表达业务错误。
 #[derive(Debug)]
 pub enum PoolError {

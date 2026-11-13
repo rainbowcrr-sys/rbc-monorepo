@@ -3,6 +3,8 @@
 > 中文 · [English](README.en.md)
 
 与 Java / C++ / Python / Rust / Go / Zig 同一套概念契约的 Swift 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md) 第 11.1 节（[English](../../SPEC.en.md)）。
+> ⚠️ **0.1.x 不推荐使用，请使用 0.2.0**（旧版缺少并发、诊断、配置与可观测能力，且不再获得修复）。
+
 
 ## 为什么 Swift 也需要对象池：ARC，不是 GC
 

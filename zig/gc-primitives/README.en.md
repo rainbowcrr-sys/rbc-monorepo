@@ -3,6 +3,8 @@
 > [中文](README.md) · English
 
 A Zig port of the same conceptual contract as the Java / C++ / Python / Rust / Go / Swift implementations. See section 11.2 of the repository-root [SPEC.en.md](../../SPEC.en.md) ([中文](../../SPEC.md)).
+> ⚠️ **0.1.x is deprecated — use 0.2.0** (older releases lack the concurrency, diagnostics, configuration and observability capabilities and receive no further fixes).
+
 
 ## Why Zig needs a pool most: no GC, no implicit allocation
 

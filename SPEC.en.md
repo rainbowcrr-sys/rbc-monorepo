@@ -248,3 +248,86 @@ Tags: monorepo `swift/gc-primitives/v0.1.0` and `zig/gc-primitives/v0.1.0`; the 
 
 **Status of this iteration**: both ports published `0.1.0` with green CI; no credentials written anywhere.
 Every Markdown file has a Chinese version (default filename) and an English version (`.en.md`); the two versions link to each other at the top of the file.
+
+## 12. The 0.2.0 Capability Set (Purely Additive)
+
+0.2.0 is **purely additive**: the existing `Pool` / `Lease` constructor signatures and default behaviour do not change by a single line; code written against 0.1.x keeps running untouched. Every capability below ships as a new type, an optional parameter, or an optional loader.
+
+### 12.1 Capabilities and merge rules
+
+| Capability | Delivery | Notes |
+| --- | --- | --- |
+| Concurrency trio | Python `AsyncPool` / `borrow_async()` / `async with`; Rust `SharedPool` (`Send + Sync`) and `LocalPool`; Go `Borrow(ctx)` | All original sync / thread-local / context-free APIs stay |
+| Full-pool policy | `on_full`: `drop_oldest` / `drop_largest` / `block` / `reject` / `grow` + `block_timeout_ms` / `max_overflow` | Default behaviour unchanged |
+| Leak detection | manual `detect_leaks()` + borrow sampling | **No background thread, zero resident overhead** |
+| Lifecycle hooks | `on_create` / `on_borrow` / `on_return` / `on_evict` / `on_destroy` / `clear_sensitive` | Clear sensitive data on return |
+| Warm-up | `prewarm(n)` / parallel variant | — |
+| Sharding | `ShardedPool` | — |
+| Two-level pool | `TwoLevelPool` | — |
+| Snapshot | `snapshot()` returns config + stats + active_leases | — |
+| Memory scope | `memory_scope(name)`, callback + JSON output | No-op with zero allocation when `GC_PRIMITIVES_DIAG` is unset |
+| Health metrics | `stats()` / `metrics()` **unified JSON-isomorphic snapshot** | Identical field names in all seven languages; no built-in Prometheus / OTel |
+| Unified config | Unified YAML (snake_case) + schema validation + `PoolManager` + env overrides + cascading lookup + hot reload | Loader ships with the main package, no new version number |
+| Framework adapters | Zero-dependency thin examples in each README | Main package depends on no framework |
+
+**Merge rules**: "unified metrics/telemetry" and "health metrics API" from the original list are one capability domain and are implemented once; "runtime reconfiguration" is folded into the config file's hot reload instead of being built separately. The original "framework integration" table included Node (Express/Fastify); per the deleted `node/` directory, **seven languages only**.
+
+### 12.2 Combination matrix (fixed, no free nesting)
+
+| | Standalone | Shardable | As `TwoLevelPool` L2 |
+| --- | --- | --- | --- |
+| `LocalPool` (Rust thread-local) | ✅ | ❌ | ❌ |
+| `SharedPool` (Rust `Send + Sync`) | ✅ | ✅ | ✅ |
+| Base `Pool` in other languages | ✅ | ✅ | ✅ |
+
+`TwoLevelPool` is built only on `SharedPool` (or an equivalent shared pool); CI runs against this matrix and forbidden combinations fail at construction time.
+
+### 12.3 Unified metrics JSON-isomorphic snapshot (identical field names)
+
+```json
+{
+  "borrow_count": 0, "return_count": 0, "active_leases": 0,
+  "pool_hits": 0, "pool_misses": 0, "hit_rate": 0.0,
+  "wait_time_p50": 0.0, "wait_time_p99": 0.0, "wait_time_max": 0.0,
+  "object_lifetime_p50": 0.0, "eviction_count": 0, "leak_count": 0,
+  "created": 0, "idle": 0, "capacity": 0, "closed": false
+}
+```
+
+`stats()` / `metrics()` in all seven languages must return these exact keys; implementations without sampling supply `0` / `0.0` rather than omitting a field.
+
+### 12.4 Unified YAML and loader
+
+- **Format**: one YAML dialect for all seven languages, **unified snake_case** keys; a config file can be copied across languages
+- **Dependencies**: zero-dependency core + optional loader (a built-in minimal YAML-subset parser supporting only the scalars and two-level nested keys shown in the example, not full YAML); the core pool works without the loader
+- **Delivery**: the loader **ships with the main package and adds no version number** (Python extras / Rust feature / optional C++ header / in-repo submodule elsewhere) — still seven `0.2.0` packages
+- **Validation**: `max_size <= 0`, an invalid `on_full`, or an unknown key fails at load time with a list of legal values
+- **Precedence**: `GC_PRIMITIVES__<POOL>__<KEY` env vars > config file > code defaults
+- **Cascading lookup**: `./gc-primitives.yaml` → `./config/gc-primitives.yaml` → `~/.config/gc-primitives.yaml` → `/etc/gc-primitives.yaml`; `GC_PRIMITIVES_CONFIG` overrides the search
+- **Multiple pools**: `PoolManager.from_config()` creates and shuts down all pools together
+- **Hot reload tiers** (hot reload is implemented, mechanisms differ, explicitly documented):
+  - Python / Rust / Go / Java: automatic file-watch reload
+  - C++ / Zig / Swift: `reload()` + an mtime check triggered manually — labelled the degraded tier
+
+### 12.5 Memory scope and diagnostic output
+
+- **Rust stays zero-unsafe**: `memory_scope` is delta-based (in-pool borrow/return/create counters + an optional custom allocator wrapper) and **never installs** `#[global_allocator]`; precision is below byte-level, the zero-dependency promise holds
+- **Output**: stderr by default; a callback or a JSON file can be supplied
+- **Switch**: no-op when `GC_PRIMITIVES_DIAG` is unset. C++ / Rust use macros and features; Python / Go / Java use a runtime check — same semantics, different mechanism
+- **Nesting**: `outer` / `inner` are counted separately, with the delta attributed to the innermost scope
+
+### 12.6 Leak detection and borrow sampling
+
+- Only `detect_leaks()` and borrow snapshots are exposed; **no background thread, zero resident overhead**
+- **Unified minimum**: all seven languages provide `lease_id` / `borrowed_at` / timeout verdict / user `tag`
+- Stack snapshots are built in for Python / Go / Java only; Rust / C++ / Swift / Zig are not required to (avoids conflicting with zero-dependency / header-only)
+
+### 12.7 Versioning and legacy policy
+
+All seven languages move to `0.2.0` together. The documentation tables list **only 0.2.0** and explicitly state that **0.1.x is deprecated**; old tags are neither deleted nor advertised. Artifacts already published to PyPI / crates.io / Maven Central are **immutable and cannot be annotated retroactively**, so the notice lives in the new docs and Release notes; the 0.1.x GitHub Release descriptions have been amended with a deprecation notice.
+
+### 12.8 Verification
+
+Four layers: all seven language CIs green → one shared contract case aligned across languages → real download / install followed by a working consumer program → repo-wide secret scan + bilingual doc validation.
+
+Every Markdown file has a Chinese version (default filename) and an English version (`.en.md`); the two versions link to each other at the top of the file.

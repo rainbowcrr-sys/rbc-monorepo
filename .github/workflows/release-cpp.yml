@@ -54,6 +54,12 @@ jobs:
               -I cpp/gc-primitives/include cpp/gc-primitives/tests/contract_test.cpp -o /tmp/contract_test
           /tmp/contract_test
 
+      - name: Build and run 0.2.0 capability tests
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Wpedantic -pthread \
+              -I cpp/gc-primitives/include cpp/gc-primitives/tests/v020_test.cpp -o /tmp/v020_test
+          /tmp/v020_test
+
       - name: Package header-only tarball
         env:
           TAG_NAME: ${{ github.ref_name }}

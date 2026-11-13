@@ -3,6 +3,8 @@
 > 中文 · [English](README.en.md)
 
 与 Java / C++ / Python / Rust 同一套概念契约的 Go 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md)（[English](../../SPEC.en.md)）。
+> ⚠️ **0.1.x 不推荐使用，请使用 0.2.0**（旧版缺少并发、诊断、配置与可观测能力，且不再获得修复）。
+
 
 > 目录：`go/gc-primitives/`（顶层按语言、内层按项目）。
 > **Go 没有中心仓库、没有账号、没有 API Token、没有上传步骤**——模块版本就是 Git tag，`go get` 直接从 GitHub 拉源码，pkg.go.dev 从 `proxy.golang.org` 自动索引。

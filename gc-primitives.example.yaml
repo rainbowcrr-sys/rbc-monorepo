@@ -1,0 +1,37 @@
+# gc-primitives 0.2.0 · 七语言统一配置示例（snake_case，复制即可跨语言迁移）
+# 加载器随主包同发、核心零依赖；本文件只是示例，库不要求必须存在。
+config_version: 1
+
+pools:
+  default:
+    max_size: 128
+    on_full: "block"            # drop_oldest | drop_largest | block | reject | grow
+    block_timeout_ms: 5000
+    max_overflow: 0
+    eviction_policy: "lru"
+    prewarm: 32
+    leak_detection: true
+    leak_timeout_ms: 3000
+    lifecycle:
+      on_create: "none"
+      on_borrow: "none"
+      on_return: "reset"
+      on_evict: "none"
+      on_destroy: "none"
+      clear_sensitive: false
+
+  db_connections:
+    max_size: 20
+    on_full: "reject"
+    leak_timeout_ms: 10000
+    prewarm: 5
+
+diagnostics:
+  memory_scope: false            # 也可由 GC_PRIMITIVES_DIAG=1 开启
+  scope_sink: "stderr"           # stderr | callback | json
+  scope_json_path: "gc-scopes.json"
+  metrics:
+    enabled: true
+    export: "json"               # 0.2.0 统一 JSON 同构快照，不内置 Prometheus / OTel
+    endpoint: "/metrics"
+  leak_detection: true

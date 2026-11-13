@@ -3,6 +3,8 @@
 > 中文 · [English](README.en.md)
 
 与 Java / C++ / Python 同一套概念契约的 Rust 移植，行为规范见仓库根 [SPEC.md](../../SPEC.md)（[English](../../SPEC.en.md)）。
+> ⚠️ **0.1.x 不推荐使用，请使用 0.2.0**（旧版缺少并发、诊断、配置与可观测能力，且不再获得修复）。
+
 
 > Rust 没有 GC。这里的收益是**更少的堆分配与复用后的缓存局部性**。
 > 本 crate 的硬承诺是 **零 `unsafe`、零依赖**：`#![forbid(unsafe_code)]` 写在 crate 根。

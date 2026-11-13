@@ -3,6 +3,8 @@
 > [中文](README.md) · English
 
 A Rust port of the same conceptual contract as the Java / C++ / Python versions. See the repository-root [SPEC.en.md](../../SPEC.en.md) ([中文](../../SPEC.md)) for the behavioral specification.
+> ⚠️ **0.1.x is deprecated — use 0.2.0** (older releases lack the concurrency, diagnostics, configuration and observability capabilities and receive no further fixes).
+
 
 > Rust has no GC. The benefit here is **fewer heap allocations and better cache locality after reuse**.
 > The hard promise of this crate is **zero `unsafe`, zero dependencies**: `#![forbid(unsafe_code)]` sits at the crate root.
