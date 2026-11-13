@@ -745,7 +745,7 @@ impl<T: Send + 'static> SharedPool<T> {
             let mut g = self.inner.lock().unwrap();
             if g.closed { return }
             g.closed = true;
-            let v: Vec<T> = g.free.drain(..).collect();
+            let v: Vec<T> = std::mem::take(&mut g.free);
             (v, g.hooks.on_destroy.clone())
         };
         self.cv.notify_all();
