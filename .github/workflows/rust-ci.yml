@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   msrv:
@@ -99,5 +99,12 @@ jobs:
           set -e
           if [ "$code" -ne 0 ]; then
             echo "::error title=rustfmt diff::$(tr '\n' ' ' < /tmp/rustfmt.log | cut -c1-20000)"
+            cargo fmt
+            cd "$GITHUB_WORKSPACE"
+            git config user.name "rustfmt-bot"
+            git config user.email "rustfmt-bot@users.noreply.github.com"
+            git add rust/gc-primitives
+            git commit -m "chore: rustfmt autofix [skip ci]"
+            git push origin HEAD:rustfmt-autofix --force
             exit "$code"
           fi

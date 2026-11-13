@@ -10,6 +10,10 @@
 
 use std::collections::BTreeMap;
 use std::env;
+
+/// 回调类型别名：让结构体 / 签名保持可读，也满足 clippy 的类型复杂度检查。
+pub type ScopeSink<'a> = Box<dyn Fn(&ScopeReport) + 'a>;
+pub type Hook<T> = Arc<dyn Fn(&T) + Send + Sync>;
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -161,7 +165,7 @@ pub struct ScopeReport {
 /// `GC_PRIMITIVES_DIAG` 未设时返回 `None`（空操作，零分配）。
 pub struct MemoryScope<'a> {
     name: String,
-    sink: Option<Box<dyn Fn(&ScopeReport) + 'a>>,
+    sink: Option<ScopeSink<'a>>,
     json_path: Option<String>,
     collector: Option<&'a MetricsCollector>,
     t0: Instant,
@@ -170,7 +174,7 @@ pub struct MemoryScope<'a> {
 }
 
 impl<'a> MemoryScope<'a> {
-    pub fn new(name: impl Into<String>, sink: Option<Box<dyn Fn(&ScopeReport) + 'a>>,
+    pub fn new(name: impl Into<String>, sink: Option<ScopeSink<'a>>,
                json_path: Option<String>, collector: Option<&'a MetricsCollector>) -> Option<Self> {
         if !diag_enabled() { return None }
         let (b0, c0) = match collector {
@@ -377,7 +381,7 @@ pub fn parse_yaml_subset(text: &str) -> Result<BTreeMap<String, String>, ConfigE
         let line = match raw.find('#') { Some(j) => &raw[..j], None => raw };
         let content = line.trim();
         if content.is_empty() { continue }
-        let indent = line.len() - line.trim_start_matches(|c| c == ' ' || c == '\t').len();
+        let indent = line.len() - line.trim_start_matches([' ', '\t']).len();
         if line[..indent].contains('\t') {
             return Err(ConfigError(format!("line {}: tabs are not allowed for indentation", i + 1)))
         }
@@ -531,11 +535,11 @@ pub type Factory<T> = Arc<dyn Fn() -> Option<T> + Send + Sync + 'static>;
 pub type Recycler<T> = Arc<dyn Fn(&mut T) -> Result<(), String> + Send + Sync + 'static>;
 
 pub struct LifecycleHooks<T> {
-    pub on_create: Option<Arc<dyn Fn(&T) + Send + Sync>>,
-    pub on_borrow: Option<Arc<dyn Fn(&T) + Send + Sync>>,
-    pub on_return: Option<Arc<dyn Fn(&T) + Send + Sync>>,
-    pub on_evict: Option<Arc<dyn Fn(&T) + Send + Sync>>,
-    pub on_destroy: Option<Arc<dyn Fn(&T) + Send + Sync>>,
+    pub on_create: Option<Hook<T>>,
+    pub on_borrow: Option<Hook<T>>,
+    pub on_return: Option<Hook<T>>,
+    pub on_evict: Option<Hook<T>>,
+    pub on_destroy: Option<Hook<T>>,
     pub clear_sensitive: bool,
 }
 impl<T> Default for LifecycleHooks<T> {
@@ -545,7 +549,7 @@ impl<T> Default for LifecycleHooks<T> {
     }
 }
 impl<T> LifecycleHooks<T> {
-    fn fire(h: &Option<Arc<dyn Fn(&T) + Send + Sync>>, v: &T) {
+    fn fire(h: &Option<Hook<T>>, v: &T) {
         if let Some(f) = h { f(v) }
     }
 }

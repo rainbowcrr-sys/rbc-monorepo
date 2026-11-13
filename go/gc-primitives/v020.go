@@ -53,22 +53,22 @@ func BorrowContext[T any](ctx context.Context, p *Pool[T]) (*Lease[T], error) {
 // ---------------------------------------------------------------------------
 
 type Metrics struct {
-	BorrowCount        int64   `json:"borrow_count"`
-	ReturnCount        int64   `json:"return_count"`
-	ActiveLeases       int64   `json:"active_leases"`
-	PoolHits           int64   `json:"pool_hits"`
-	PoolMisses         int64   `json:"pool_misses"`
-	HitRate            float64 `json:"hit_rate"`
-	WaitTimeP50        float64 `json:"wait_time_p50"`
-	WaitTimeP99        float64 `json:"wait_time_p99"`
-	WaitTimeMax        float64 `json:"wait_time_max"`
-	ObjectLifetimeP50  float64 `json:"object_lifetime_p50"`
-	EvictionCount      int64   `json:"eviction_count"`
-	LeakCount          int64   `json:"leak_count"`
-	Created            int64   `json:"created"`
-	Idle               int64   `json:"idle"`
-	Capacity           int64   `json:"capacity"`
-	Closed             bool    `json:"closed"`
+	BorrowCount       int64   `json:"borrow_count"`
+	ReturnCount       int64   `json:"return_count"`
+	ActiveLeases      int64   `json:"active_leases"`
+	PoolHits          int64   `json:"pool_hits"`
+	PoolMisses        int64   `json:"pool_misses"`
+	HitRate           float64 `json:"hit_rate"`
+	WaitTimeP50       float64 `json:"wait_time_p50"`
+	WaitTimeP99       float64 `json:"wait_time_p99"`
+	WaitTimeMax       float64 `json:"wait_time_max"`
+	ObjectLifetimeP50 float64 `json:"object_lifetime_p50"`
+	EvictionCount     int64   `json:"eviction_count"`
+	LeakCount         int64   `json:"leak_count"`
+	Created           int64   `json:"created"`
+	Idle              int64   `json:"idle"`
+	Capacity          int64   `json:"capacity"`
+	Closed            bool    `json:"closed"`
 }
 
 var MetricsFields = []string{
@@ -288,16 +288,16 @@ const (
 )
 
 type PoolConfig struct {
-	MaxSize         int64             `json:"max_size"`
-	OnFull          OnFull            `json:"on_full"`
-	BlockTimeoutMs  int64             `json:"block_timeout_ms"`
-	MaxOverflow     int64             `json:"max_overflow"`
-	EvictionPolicy  string            `json:"eviction_policy"`
-	Prewarm         int64             `json:"prewarm"`
-	LeakDetection   bool              `json:"leak_detection"`
-	LeakTimeoutMs   int64             `json:"leak_timeout_ms"`
-	ClearSensitive  bool              `json:"clear_sensitive"`
-	Lifecycle       map[string]string `json:"-"`
+	MaxSize        int64             `json:"max_size"`
+	OnFull         OnFull            `json:"on_full"`
+	BlockTimeoutMs int64             `json:"block_timeout_ms"`
+	MaxOverflow    int64             `json:"max_overflow"`
+	EvictionPolicy string            `json:"eviction_policy"`
+	Prewarm        int64             `json:"prewarm"`
+	LeakDetection  bool              `json:"leak_detection"`
+	LeakTimeoutMs  int64             `json:"leak_timeout_ms"`
+	ClearSensitive bool              `json:"clear_sensitive"`
+	Lifecycle      map[string]string `json:"-"`
 }
 
 func DefaultConfig() PoolConfig {
@@ -582,7 +582,7 @@ func (m *PoolManager) Shutdown() {
 
 type LifecycleHooks[T any] struct {
 	OnCreate, OnBorrow, OnReturn, OnEvict, OnDestroy func(*T)
-	ClearSensitive                                  bool
+	ClearSensitive                                   bool
 }
 
 type ManagedLease[T any] struct {

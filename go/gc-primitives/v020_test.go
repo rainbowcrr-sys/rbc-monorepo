@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func strFactory() (string, bool) { return "", true }
+func strFactory() (string, bool)  { return "", true }
 func strRecycler(s *string) error { *s = ""; return nil }
 
 func TestV020MetricsFields(t *testing.T) {
