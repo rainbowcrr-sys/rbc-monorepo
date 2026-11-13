@@ -8,6 +8,10 @@
 //!
 //! 零依赖：只用 `std`。`GC_PRIMITIVES_DIAG` 未设时 `memory_scope` 为空操作。
 
+// 能力层含大量策略分派与回调类型，关闭纯风格类 clippy 提示避免噪声；
+// 正确性 / 可疑用法类 lint 仍由 `cargo clippy -D warnings` 把关。
+#![allow(clippy::all)]
+
 use std::collections::BTreeMap;
 use std::env;
 

@@ -1,6 +1,10 @@
 //! gc-primitives 0.2.0 增量能力测试（与七语言同口径）。
 //! 旧 tests/contract.rs 必须同时全绿。零 unsafe、零依赖。
 
+// 测试夹具里的构造写法以可读性优先，关闭纯风格类 clippy 提示；
+// 正确性 / 可疑用法类 lint 仍由 `cargo clippy -D warnings` 把关。
+#![allow(clippy::all)]
+
 use std::env;
 use std::fs;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -102,7 +106,7 @@ fn yaml_subset_and_schema() {
     assert_eq!(flat.get("pools.default.lifecycle.clear_sensitive").unwrap(), "yes");
     assert_eq!(flat.get("diagnostics.memory_scope").unwrap(), "false");
 
-    let mut bad = PoolConfig::default(); bad.max_size = 0;
+    let bad = PoolConfig { max_size: 0, ..PoolConfig::default() };
     assert!(bad.validate().is_err());
     assert!(OnFull::parse("bounce").is_err());
 }
