@@ -72,7 +72,14 @@ jobs:
           SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
           SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
         run: |
-          gradle :java:gc-primitives:bundleCentral --no-daemon
+          set +e
+          gradle :java:gc-primitives:bundleCentral --no-daemon --stacktrace > /tmp/gradle-bundle.log 2>&1
+          code=$?
+          cat /tmp/gradle-bundle.log
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=bundleCentral failed::$(tr '\n' ' ' < /tmp/gradle-bundle.log | tail -c 12000)"
+            exit "$code"
+          fi
           bundle=(java/gc-primitives/build/central-bundle/*-bundle.zip)
           files=$(unzip -Z1 "${bundle[0]}" | tr '\n' ' ')
           echo "::notice title=Bundle 文件清单::$files"
