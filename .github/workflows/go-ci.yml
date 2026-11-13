@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   go121:
@@ -70,7 +70,13 @@ jobs:
           if [ -z "$(gofmt -l .)" ]; then
             echo "gofmt OK"
           else
-            gofmt -d . > /tmp/gofmt.diff 2>&1
-            echo "::error title=gofmt diff::$(tr '\n' ' ' < /tmp/gofmt.diff | cut -c1-20000)"
+            echo "::error title=gofmt files::$(gofmt -l . | tr '\n' ' ')"
+            gofmt -w .
+            cd "$GITHUB_WORKSPACE"
+            git config user.name "gofmt-bot"
+            git config user.email "gofmt-bot@users.noreply.github.com"
+            git add go/gc-primitives
+            git commit -m "chore: gofmt autofix [skip ci]"
+            git push origin HEAD:gofmt-autofix --force
             exit 1
           fi

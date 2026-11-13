@@ -39,17 +39,25 @@ final class V020Tests: XCTestCase {
         XCTAssertEqual(s.waitTimeMax, 2)
     }
 
+    /// sink 是 @Sendable 闭包，不能直接捕获并修改局部 var；用锁保护的盒子。
+    private final class NamesBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var items: [String] = []
+        func append(_ s: String) { lock.lock(); defer { lock.unlock() }; items.append(s) }
+        var value: [String] { lock.lock(); defer { lock.unlock() }; return items }
+    }
+
     func testMemoryScopeDisabledAndEnabled() {
         // 未开启时 end() 不产生输出；开启时 sink 被调用（嵌套 inner 先于 outer）
         setenv(V020.diagEnv, "1", 1)
-        var names: [String] = []
+        let box = NamesBox()
         do {
-            let outer = V020.MemoryScope("outer", sink: { r in names.append(r.name) })
-            let inner = V020.MemoryScope("inner", sink: { r in names.append(r.name) })
+            let outer = V020.MemoryScope("outer", sink: { r in box.append(r.name) })
+            let inner = V020.MemoryScope("inner", sink: { r in box.append(r.name) })
             _ = [Int](repeating: 7, count: 128)
             inner.end(); outer.end()
         }
-        XCTAssertEqual(names, ["inner", "outer"])
+        XCTAssertEqual(box.value, ["inner", "outer"])
         unsetenv(V020.diagEnv)
     }
 

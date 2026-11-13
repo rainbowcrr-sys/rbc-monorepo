@@ -84,9 +84,18 @@ fn leak_sampling_minimum_fields() {
 
 #[test]
 fn yaml_subset_and_schema() {
-    let text = "pools:\n  default:\n    max_size: 8\n    on_full: \"reject\"\n\
-    leak_detection: true\n    lifecycle:\n      on_return: \"reset\"\n      clear_sensitive: yes\n\
-    diagnostics:\n  memory_scope: false\n";
+    let text = concat!(
+        "pools:\n",
+        "  default:\n",
+        "    max_size: 8\n",
+        "    on_full: \"reject\"\n",
+        "    leak_detection: true\n",
+        "    lifecycle:\n",
+        "      on_return: \"reset\"\n",
+        "      clear_sensitive: yes\n",
+        "diagnostics:\n",
+        "  memory_scope: false\n",
+    );
     let flat = parse_yaml_subset(text).unwrap();
     assert_eq!(flat.get("pools.default.max_size").unwrap(), "8");
     assert_eq!(flat.get("pools.default.on_full").unwrap(), "reject");

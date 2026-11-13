@@ -109,7 +109,7 @@ impl MetricsCollector {
     pub fn record_leak(&self, n: u64) { self.inner.lock().unwrap().m.leak_count += n; }
 
     pub fn snapshot(&self, capacity: u64, idle: u64, closed: bool) -> Metrics {
-        let mut g = self.inner.lock().unwrap();
+        let g = self.inner.lock().unwrap();
         let mut out = g.m.clone();
         let mut w = g.waits.clone();
         let mut l = g.lifetimes.clone();
