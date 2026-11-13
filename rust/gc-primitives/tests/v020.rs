@@ -13,11 +13,20 @@ use std::sync::Arc;
 use gc_primitives::v020::*;
 
 fn cfg(n: u64, p: OnFull) -> PoolConfig {
-    PoolConfig { max_size: n, on_full: p, ..PoolConfig::default() }
+    PoolConfig {
+        max_size: n,
+        on_full: p,
+        ..PoolConfig::default()
+    }
 }
-fn factory() -> Factory<String> { Arc::new(|| Some(String::new())) }
+fn factory() -> Factory<String> {
+    Arc::new(|| Some(String::new()))
+}
 fn recycler() -> Recycler<String> {
-    Arc::new(|s| { s.clear(); Ok(()) })
+    Arc::new(|s| {
+        s.clear();
+        Ok(())
+    })
 }
 
 #[test]
@@ -57,13 +66,27 @@ fn memory_scope_disabled_and_enabled() {
     let calls = Arc::new(AtomicUsize::new(0));
     {
         let c1 = Arc::clone(&calls);
-        let outer = MemoryScope::new("outer", Some(Box::new(move |_| { c1.fetch_add(1, Ordering::SeqCst); })), None, None);
+        let outer = MemoryScope::new(
+            "outer",
+            Some(Box::new(move |_| {
+                c1.fetch_add(1, Ordering::SeqCst);
+            })),
+            None,
+            None,
+        );
         let c2 = Arc::clone(&calls);
-        let inner = MemoryScope::new("inner", Some(Box::new(move |_| { c2.fetch_add(1, Ordering::SeqCst); })), None, None);
+        let inner = MemoryScope::new(
+            "inner",
+            Some(Box::new(move |_| {
+                c2.fetch_add(1, Ordering::SeqCst);
+            })),
+            None,
+            None,
+        );
         assert!(outer.is_some() && inner.is_some());
         let _v: Vec<u8> = vec![0; 4096];
-        drop(inner);   // inner 先
-        drop(outer);   // outer 后
+        drop(inner); // inner 先
+        drop(outer); // outer 后
     }
     assert_eq!(calls.load(Ordering::SeqCst), 2);
     env::remove_var(DIAG_ENV);
@@ -103,10 +126,16 @@ fn yaml_subset_and_schema() {
     let flat = parse_yaml_subset(text).unwrap();
     assert_eq!(flat.get("pools.default.max_size").unwrap(), "8");
     assert_eq!(flat.get("pools.default.on_full").unwrap(), "reject");
-    assert_eq!(flat.get("pools.default.lifecycle.clear_sensitive").unwrap(), "yes");
+    assert_eq!(
+        flat.get("pools.default.lifecycle.clear_sensitive").unwrap(),
+        "yes"
+    );
     assert_eq!(flat.get("diagnostics.memory_scope").unwrap(), "false");
 
-    let bad = PoolConfig { max_size: 0, ..PoolConfig::default() };
+    let bad = PoolConfig {
+        max_size: 0,
+        ..PoolConfig::default()
+    };
     assert!(bad.validate().is_err());
     assert!(OnFull::parse("bounce").is_err());
 }
@@ -116,7 +145,11 @@ fn config_env_override() {
     let dir = std::env::temp_dir().join(format!("gc_v020_{}", std::process::id()));
     let _ = fs::create_dir_all(&dir);
     let p = dir.join("cfg.yaml");
-    fs::write(&p, "pools:\n  default:\n    max_size: 3\n    on_full: reject\n").unwrap();
+    fs::write(
+        &p,
+        "pools:\n  default:\n    max_size: 3\n    on_full: reject\n",
+    )
+    .unwrap();
     env::set_var("GC_PRIMITIVES__DEFAULT__MAX_SIZE", "17");
     let c = load_config(Some(p.to_str().unwrap()), "default").unwrap();
     assert_eq!(c.max_size, 17);
@@ -129,25 +162,40 @@ fn config_env_override() {
 #[test]
 fn full_policies() {
     // reject
-    let p = SharedPool::new(factory(), recycler(), cfg(1, OnFull::Reject),
-                            LifecycleHooks::default()).unwrap();
+    let p = SharedPool::new(
+        factory(),
+        recycler(),
+        cfg(1, OnFull::Reject),
+        LifecycleHooks::default(),
+    )
+    .unwrap();
     let a = p.borrow("").unwrap();
     assert!(matches!(p.borrow(""), Err(SharedError::PoolExhausted)));
     a.close().unwrap();
 
     // block timeout
-    let c = PoolConfig { block_timeout_ms: 30, ..cfg(1, OnFull::Block) };
+    let c = PoolConfig {
+        block_timeout_ms: 30,
+        ..cfg(1, OnFull::Block)
+    };
     let p2 = SharedPool::new(factory(), recycler(), c, LifecycleHooks::default()).unwrap();
     let b = p2.borrow("").unwrap();
     assert!(matches!(p2.borrow(""), Err(SharedError::BorrowTimeout)));
     b.close().unwrap();
 
     // grow
-    let g = PoolConfig { max_overflow: 2, ..cfg(1, OnFull::Grow) };
+    let g = PoolConfig {
+        max_overflow: 2,
+        ..cfg(1, OnFull::Grow)
+    };
     let p3 = SharedPool::new(factory(), recycler(), g, LifecycleHooks::default()).unwrap();
     let mut leases = Vec::new();
-    for _ in 0..3 { leases.push(p3.borrow("").unwrap()); }
-    for l in leases { l.close().unwrap(); }
+    for _ in 0..3 {
+        leases.push(p3.borrow("").unwrap());
+    }
+    for l in leases {
+        l.close().unwrap();
+    }
     p3.assert_no_active_leases().unwrap();
 }
 
@@ -156,11 +204,19 @@ fn hooks_prewarm_snapshot() {
     let created = Arc::new(AtomicUsize::new(0));
     let borrowed = Arc::new(AtomicUsize::new(0));
     let destroyed = Arc::new(AtomicUsize::new(0));
-    let c1 = Arc::clone(&created); let c2 = Arc::clone(&borrowed); let c3 = Arc::clone(&destroyed);
+    let c1 = Arc::clone(&created);
+    let c2 = Arc::clone(&borrowed);
+    let c3 = Arc::clone(&destroyed);
     let hooks = LifecycleHooks {
-        on_create: Some(Arc::new(move |_| { c1.fetch_add(1, Ordering::SeqCst); })),
-        on_borrow: Some(Arc::new(move |_| { c2.fetch_add(1, Ordering::SeqCst); })),
-        on_destroy: Some(Arc::new(move |_| { c3.fetch_add(1, Ordering::SeqCst); })),
+        on_create: Some(Arc::new(move |_| {
+            c1.fetch_add(1, Ordering::SeqCst);
+        })),
+        on_borrow: Some(Arc::new(move |_| {
+            c2.fetch_add(1, Ordering::SeqCst);
+        })),
+        on_destroy: Some(Arc::new(move |_| {
+            c3.fetch_add(1, Ordering::SeqCst);
+        })),
         ..LifecycleHooks::default()
     };
     let p = SharedPool::new(factory(), recycler(), PoolConfig::default(), hooks).unwrap();
@@ -187,8 +243,15 @@ fn combination_matrix_is_fixed() {
 fn sharded_and_two_level() {
     let mut shards = Vec::new();
     for _ in 0..4 {
-        shards.push(SharedPool::new(factory(), recycler(),
-            cfg(2, OnFull::DropOldest), LifecycleHooks::default()).unwrap());
+        shards.push(
+            SharedPool::new(
+                factory(),
+                recycler(),
+                cfg(2, OnFull::DropOldest),
+                LifecycleHooks::default(),
+            )
+            .unwrap(),
+        );
     }
     let sp = ShardedPool::new(shards, PoolKind::Shared).unwrap();
     let l = sp.borrow("").unwrap();
@@ -196,8 +259,13 @@ fn sharded_and_two_level() {
     assert_eq!(sp.metrics().borrow_count, 1);
     sp.close();
 
-    let l2 = SharedPool::new(factory(), recycler(),
-        cfg(8, OnFull::DropOldest), LifecycleHooks::default()).unwrap();
+    let l2 = SharedPool::new(
+        factory(),
+        recycler(),
+        cfg(8, OnFull::DropOldest),
+        LifecycleHooks::default(),
+    )
+    .unwrap();
     let tp = TwoLevelPool::new(Arc::clone(&l2), 2, PoolKind::Shared).unwrap();
     let l = tp.borrow("").unwrap();
     l.close().unwrap();
@@ -210,8 +278,13 @@ fn shared_pool_is_send_sync() {
     assert_send_sync::<Arc<SharedPool<String>>>();
 
     // 真跨线程用一次
-    let p = SharedPool::new(factory(), recycler(),
-        cfg(8, OnFull::Grow), LifecycleHooks::default()).unwrap();
+    let p = SharedPool::new(
+        factory(),
+        recycler(),
+        cfg(8, OnFull::Grow),
+        LifecycleHooks::default(),
+    )
+    .unwrap();
     let mut handles = Vec::new();
     for _ in 0..4 {
         let q = Arc::clone(&p);
@@ -223,7 +296,9 @@ fn shared_pool_is_send_sync() {
             }
         }));
     }
-    for h in handles { h.join().unwrap(); }
+    for h in handles {
+        h.join().unwrap();
+    }
     p.assert_no_active_leases().unwrap();
     assert_eq!(p.metrics().borrow_count, 100);
 }
@@ -231,7 +306,12 @@ fn shared_pool_is_send_sync() {
 #[test]
 fn original_contract_still_green() {
     let pool = gc_primitives::Pool::<String>::with_defaults(4).unwrap();
-    let len = pool.with_borrow(|s| { s.push_str("hello"); s.len() }).unwrap();
+    let len = pool
+        .with_borrow(|s| {
+            s.push_str("hello");
+            s.len()
+        })
+        .unwrap();
     assert_eq!(len, 5);
     pool.assert_no_active_leases().unwrap();
 }

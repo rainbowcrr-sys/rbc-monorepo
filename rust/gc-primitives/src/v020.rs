@@ -35,10 +35,22 @@ pub const DETECT_LEAKS_AVAILABLE: bool = true;
 // ---------------------------------------------------------------------------
 
 pub const METRICS_FIELDS: [&str; 16] = [
-    "borrow_count", "return_count", "active_leases", "pool_hits", "pool_misses",
-    "hit_rate", "wait_time_p50", "wait_time_p99", "wait_time_max",
-    "object_lifetime_p50", "eviction_count", "leak_count", "created", "idle",
-    "capacity", "closed",
+    "borrow_count",
+    "return_count",
+    "active_leases",
+    "pool_hits",
+    "pool_misses",
+    "hit_rate",
+    "wait_time_p50",
+    "wait_time_p99",
+    "wait_time_max",
+    "object_lifetime_p50",
+    "eviction_count",
+    "leak_count",
+    "created",
+    "idle",
+    "capacity",
+    "closed",
 ];
 
 #[derive(Debug, Clone, Default)]
@@ -73,16 +85,29 @@ impl Metrics {
                 "\"created\":{},\"idle\":{},\"capacity\":{},\"closed\":{}",
                 "}}"
             ),
-            self.borrow_count, self.return_count, self.active_leases,
-            self.pool_hits, self.pool_misses, self.hit_rate,
-            self.wait_time_p50, self.wait_time_p99, self.wait_time_max,
-            self.object_lifetime_p50, self.eviction_count, self.leak_count,
-            self.created, self.idle, self.capacity, self.closed
+            self.borrow_count,
+            self.return_count,
+            self.active_leases,
+            self.pool_hits,
+            self.pool_misses,
+            self.hit_rate,
+            self.wait_time_p50,
+            self.wait_time_p99,
+            self.wait_time_max,
+            self.object_lifetime_p50,
+            self.eviction_count,
+            self.leak_count,
+            self.created,
+            self.idle,
+            self.capacity,
+            self.closed
         )
     }
 }
 
-pub fn metrics_snapshot() -> Metrics { Metrics::default() }
+pub fn metrics_snapshot() -> Metrics {
+    Metrics::default()
+}
 
 #[derive(Debug)]
 pub struct MetricsCollector {
@@ -97,14 +122,24 @@ struct CollectorInner {
 }
 
 impl MetricsCollector {
-    pub fn new() -> Self { Self { inner: Mutex::new(CollectorInner::default()) } }
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(CollectorInner::default()),
+        }
+    }
 
     pub fn record_borrow(&self, hit: bool, wait_ms: f64, created: bool) {
         let mut g = self.inner.lock().unwrap();
         g.m.borrow_count += 1;
         g.m.active_leases += 1;
-        if hit { g.m.pool_hits += 1 } else { g.m.pool_misses += 1 }
-        if created { g.m.created += 1 }
+        if hit {
+            g.m.pool_hits += 1
+        } else {
+            g.m.pool_misses += 1
+        }
+        if created {
+            g.m.created += 1
+        }
         g.waits.push(wait_ms);
     }
     pub fn record_return(&self, lifetime_ms: f64) {
@@ -113,8 +148,12 @@ impl MetricsCollector {
         g.m.active_leases = g.m.active_leases.saturating_sub(1);
         g.lifetimes.push(lifetime_ms);
     }
-    pub fn record_eviction(&self) { self.inner.lock().unwrap().m.eviction_count += 1; }
-    pub fn record_leak(&self, n: u64) { self.inner.lock().unwrap().m.leak_count += n; }
+    pub fn record_eviction(&self) {
+        self.inner.lock().unwrap().m.eviction_count += 1;
+    }
+    pub fn record_leak(&self, n: u64) {
+        self.inner.lock().unwrap().m.leak_count += n;
+    }
 
     pub fn snapshot(&self, capacity: u64, idle: u64, closed: bool) -> Metrics {
         let g = self.inner.lock().unwrap();
@@ -124,7 +163,11 @@ impl MetricsCollector {
         w.sort_by(|a, b| a.partial_cmp(b).unwrap());
         l.sort_by(|a, b| a.partial_cmp(b).unwrap());
         let total = out.pool_hits + out.pool_misses;
-        out.hit_rate = if total == 0 { 0.0 } else { out.pool_hits as f64 / total as f64 };
+        out.hit_rate = if total == 0 {
+            0.0
+        } else {
+            out.pool_hits as f64 / total as f64
+        };
         out.wait_time_p50 = pct(&w, 0.50);
         out.wait_time_p99 = pct(&w, 0.99);
         out.wait_time_max = w.last().copied().unwrap_or(0.0);
@@ -135,10 +178,16 @@ impl MetricsCollector {
         out
     }
 }
-impl Default for MetricsCollector { fn default() -> Self { Self::new() } }
+impl Default for MetricsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 fn pct(sorted: &[f64], q: f64) -> f64 {
-    if sorted.is_empty() { return 0.0 }
+    if sorted.is_empty() {
+        return 0.0;
+    }
     let i = ((sorted.len() - 1) as f64 * q).round() as usize;
     sorted[i]
 }
@@ -178,9 +227,15 @@ pub struct MemoryScope<'a> {
 }
 
 impl<'a> MemoryScope<'a> {
-    pub fn new(name: impl Into<String>, sink: Option<ScopeSink<'a>>,
-               json_path: Option<String>, collector: Option<&'a MetricsCollector>) -> Option<Self> {
-        if !diag_enabled() { return None }
+    pub fn new(
+        name: impl Into<String>,
+        sink: Option<ScopeSink<'a>>,
+        json_path: Option<String>,
+        collector: Option<&'a MetricsCollector>,
+    ) -> Option<Self> {
+        if !diag_enabled() {
+            return None;
+        }
         let (b0, c0) = match collector {
             Some(c) => {
                 let s = c.snapshot(0, 0, false);
@@ -189,8 +244,13 @@ impl<'a> MemoryScope<'a> {
             None => (0, 0),
         };
         Some(Self {
-            name: name.into(), sink, json_path, collector,
-            t0: Instant::now(), b0, c0,
+            name: name.into(),
+            sink,
+            json_path,
+            collector,
+            t0: Instant::now(),
+            b0,
+            c0,
         })
     }
     fn report(&self) -> ScopeReport {
@@ -224,8 +284,10 @@ impl Drop for MemoryScope<'_> {
                 let _ = f.write_all(line.as_bytes());
             }
         } else {
-            eprintln!("[gc-primitives] {}: borrows={:+} created={:+} ({:.2} ms)",
-                      r.name, r.borrow_count_delta, r.created_delta, r.elapsed_ms);
+            eprintln!(
+                "[gc-primitives] {}: borrows={:+} created={:+} ({:.2} ms)",
+                r.name, r.borrow_count_delta, r.created_delta, r.elapsed_ms
+            );
         }
     }
 }
@@ -258,7 +320,12 @@ pub struct LeakDetector {
 }
 
 impl LeakDetector {
-    pub fn new() -> Self { Self { inner: Mutex::new(BTreeMap::new()), seq: AtomicU64::new(0) } }
+    pub fn new() -> Self {
+        Self {
+            inner: Mutex::new(BTreeMap::new()),
+            seq: AtomicU64::new(0),
+        }
+    }
     pub fn on_borrow(&self, tag: impl Into<String>) -> String {
         let id = self.seq.fetch_add(1, Ordering::SeqCst) + 1;
         let mut g = self.inner.lock().unwrap();
@@ -279,19 +346,31 @@ impl LeakDetector {
             let timed_out = timeout_ms >= 0 && age >= timeout_ms as f64;
             if timeout_ms < 0 || timed_out {
                 out.push(LeaseSample {
-                    lease_id: format!("{:x}", id), borrowed_at: *at,
-                    tag: tag.clone(), age_ms: age, timed_out,
+                    lease_id: format!("{:x}", id),
+                    borrowed_at: *at,
+                    tag: tag.clone(),
+                    age_ms: age,
+                    timed_out,
                 });
             }
         }
         out
     }
-    pub fn active_count(&self) -> usize { self.inner.lock().unwrap().len() }
+    pub fn active_count(&self) -> usize {
+        self.inner.lock().unwrap().len()
+    }
 }
-impl Default for LeakDetector { fn default() -> Self { Self::new() } }
+impl Default for LeakDetector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 fn now_s() -> f64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs_f64()
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64()
 }
 
 // ---------------------------------------------------------------------------
@@ -299,32 +378,53 @@ fn now_s() -> f64 {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OnFull { DropOldest, DropLargest, Block, Reject, Grow }
+pub enum OnFull {
+    DropOldest,
+    DropLargest,
+    Block,
+    Reject,
+    Grow,
+}
 
 impl OnFull {
     pub fn config_name(self) -> &'static str {
         match self {
-            OnFull::DropOldest => "drop_oldest", OnFull::DropLargest => "drop_largest",
-            OnFull::Block => "block", OnFull::Reject => "reject", OnFull::Grow => "grow",
+            OnFull::DropOldest => "drop_oldest",
+            OnFull::DropLargest => "drop_largest",
+            OnFull::Block => "block",
+            OnFull::Reject => "reject",
+            OnFull::Grow => "grow",
         }
     }
     pub fn parse(s: &str) -> Result<Self, ConfigError> {
         match s {
-            "drop_oldest" => Ok(OnFull::DropOldest), "drop_largest" => Ok(OnFull::DropLargest),
-            "block" => Ok(OnFull::Block), "reject" => Ok(OnFull::Reject), "grow" => Ok(OnFull::Grow),
+            "drop_oldest" => Ok(OnFull::DropOldest),
+            "drop_largest" => Ok(OnFull::DropLargest),
+            "block" => Ok(OnFull::Block),
+            "reject" => Ok(OnFull::Reject),
+            "grow" => Ok(OnFull::Grow),
             _ => Err(ConfigError(format!(
-                "on_full must be one of drop_oldest|drop_largest|block|reject|grow, got: {}", s))),
+                "on_full must be one of drop_oldest|drop_largest|block|reject|grow, got: {}",
+                s
+            ))),
         }
     }
 }
 
-pub const LIFECYCLE_HOOKS: [&str; 5] =
-    ["on_create", "on_borrow", "on_return", "on_evict", "on_destroy"];
+pub const LIFECYCLE_HOOKS: [&str; 5] = [
+    "on_create",
+    "on_borrow",
+    "on_return",
+    "on_evict",
+    "on_destroy",
+];
 
 #[derive(Debug, Clone)]
 pub struct ConfigError(pub String);
 impl fmt::Display for ConfigError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{}", self.0) }
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 impl std::error::Error for ConfigError {}
 
@@ -332,7 +432,7 @@ impl std::error::Error for ConfigError {}
 pub struct PoolConfig {
     pub max_size: u64,
     pub on_full: OnFull,
-    pub block_timeout_ms: i64,   // -1 = 无超时
+    pub block_timeout_ms: i64, // -1 = 无超时
     pub max_overflow: u64,
     pub eviction_policy: String,
     pub prewarm: u64,
@@ -345,9 +445,15 @@ pub struct PoolConfig {
 impl Default for PoolConfig {
     fn default() -> Self {
         Self {
-            max_size: 64, on_full: OnFull::DropOldest, block_timeout_ms: -1,
-            max_overflow: 0, eviction_policy: "lru".into(), prewarm: 0,
-            leak_detection: false, leak_timeout_ms: 3000, clear_sensitive: false,
+            max_size: 64,
+            on_full: OnFull::DropOldest,
+            block_timeout_ms: -1,
+            max_overflow: 0,
+            eviction_policy: "lru".into(),
+            prewarm: 0,
+            leak_detection: false,
+            leak_timeout_ms: 3000,
+            clear_sensitive: false,
             lifecycle: BTreeMap::new(),
         }
     }
@@ -355,25 +461,38 @@ impl Default for PoolConfig {
 
 impl PoolConfig {
     pub fn validate(&self) -> Result<(), ConfigError> {
-        if self.max_size == 0 { return Err(ConfigError("max_size must be > 0".into())) }
-        if self.prewarm > 1_000_000 { return Err(ConfigError("prewarm too large".into())) }
+        if self.max_size == 0 {
+            return Err(ConfigError("max_size must be > 0".into()));
+        }
+        if self.prewarm > 1_000_000 {
+            return Err(ConfigError("prewarm too large".into()));
+        }
         for k in self.lifecycle.keys() {
             if !LIFECYCLE_HOOKS.contains(&k.as_str()) && k != "clear_sensitive" {
-                return Err(ConfigError(format!("unknown lifecycle hook: {}", k)))
+                return Err(ConfigError(format!("unknown lifecycle hook: {}", k)));
             }
         }
         Ok(())
     }
     pub fn to_json(&self) -> String {
         format!(
-            concat!("{{",
+            concat!(
+                "{{",
                 "\"max_size\":{},\"on_full\":\"{}\",\"block_timeout_ms\":{},",
                 "\"max_overflow\":{},\"eviction_policy\":\"{}\",\"prewarm\":{},",
                 "\"leak_detection\":{},\"leak_timeout_ms\":{},\"clear_sensitive\":{}",
-            "}}"),
-            self.max_size, self.on_full.config_name(), self.block_timeout_ms,
-            self.max_overflow, self.eviction_policy, self.prewarm,
-            self.leak_detection, self.leak_timeout_ms, self.clear_sensitive)
+                "}}"
+            ),
+            self.max_size,
+            self.on_full.config_name(),
+            self.block_timeout_ms,
+            self.max_overflow,
+            self.eviction_policy,
+            self.prewarm,
+            self.leak_detection,
+            self.leak_timeout_ms,
+            self.clear_sensitive
+        )
     }
 }
 
@@ -382,46 +501,80 @@ pub fn parse_yaml_subset(text: &str) -> Result<BTreeMap<String, String>, ConfigE
     let mut out = BTreeMap::new();
     let mut stack: Vec<(usize, String)> = Vec::new();
     for (i, raw) in text.lines().enumerate() {
-        let line = match raw.find('#') { Some(j) => &raw[..j], None => raw };
+        let line = match raw.find('#') {
+            Some(j) => &raw[..j],
+            None => raw,
+        };
         let content = line.trim();
-        if content.is_empty() { continue }
+        if content.is_empty() {
+            continue;
+        }
         let indent = line.len() - line.trim_start_matches([' ', '\t']).len();
         if line[..indent].contains('\t') {
-            return Err(ConfigError(format!("line {}: tabs are not allowed for indentation", i + 1)))
+            return Err(ConfigError(format!(
+                "line {}: tabs are not allowed for indentation",
+                i + 1
+            )));
         }
-        let colon = content.find(':')
+        let colon = content
+            .find(':')
             .ok_or_else(|| ConfigError(format!("line {}: expected 'key: value'", i + 1)))?;
         let key = content[..colon].trim().to_string();
         let value = content[colon + 1..].trim().to_string();
-        while stack.last().map(|(ind, _)| *ind >= indent).unwrap_or(false) { stack.pop(); }
+        while stack.last().map(|(ind, _)| *ind >= indent).unwrap_or(false) {
+            stack.pop();
+        }
         let mut parts: Vec<&str> = stack.iter().map(|(_, k)| k.as_str()).collect();
         parts.push(&key);
         let full = parts.join(".");
-        if value.is_empty() { stack.push((indent, key)); }
-        else { out.insert(full, unquote(&value)); }
+        if value.is_empty() {
+            stack.push((indent, key));
+        } else {
+            out.insert(full, unquote(&value));
+        }
     }
     Ok(out)
 }
 
 fn unquote(v: &str) -> String {
-    if v.len() >= 2 && ((v.starts_with('"') && v.ends_with('"'))
-        || (v.starts_with('\'') && v.ends_with('\''))) {
+    if v.len() >= 2
+        && ((v.starts_with('"') && v.ends_with('"')) || (v.starts_with('\'') && v.ends_with('\'')))
+    {
         v[1..v.len() - 1].to_string()
-    } else { v.to_string() }
+    } else {
+        v.to_string()
+    }
 }
-fn as_u64(v: &str, def: u64) -> u64 { v.parse().unwrap_or(def) }
-fn as_i64(v: &str, def: i64) -> i64 { v.parse().unwrap_or(def) }
-fn as_bool(v: &str) -> bool { v.eq_ignore_ascii_case("true") || v.eq_ignore_ascii_case("yes") }
+fn as_u64(v: &str, def: u64) -> u64 {
+    v.parse().unwrap_or(def)
+}
+fn as_i64(v: &str, def: i64) -> i64 {
+    v.parse().unwrap_or(def)
+}
+fn as_bool(v: &str) -> bool {
+    v.eq_ignore_ascii_case("true") || v.eq_ignore_ascii_case("yes")
+}
 
 fn env_override(pool: &str, key: &str) -> Option<String> {
-    let name = format!("GC_PRIMITIVES__{}__{}",
-        pool.to_ascii_uppercase().replace('-', "_"), key.to_ascii_uppercase());
+    let name = format!(
+        "GC_PRIMITIVES__{}__{}",
+        pool.to_ascii_uppercase().replace('-', "_"),
+        key.to_ascii_uppercase()
+    );
     env::var(name).ok()
 }
 
-const LEGAL_KEYS: [&str; 9] = ["max_size", "on_full", "block_timeout_ms",
-    "max_overflow", "eviction_policy", "prewarm", "leak_detection",
-    "leak_timeout_ms", "clear_sensitive"];
+const LEGAL_KEYS: [&str; 9] = [
+    "max_size",
+    "on_full",
+    "block_timeout_ms",
+    "max_overflow",
+    "eviction_policy",
+    "prewarm",
+    "leak_detection",
+    "leak_timeout_ms",
+    "clear_sensitive",
+];
 
 fn apply(cfg: &mut PoolConfig, key: &str, value: &str) -> Result<(), ConfigError> {
     match key {
@@ -441,19 +594,29 @@ fn apply(cfg: &mut PoolConfig, key: &str, value: &str) -> Result<(), ConfigError
 
 /// 加载配置；找不到文件时返回默认值（配置文件可选）。
 pub fn load_config(path: Option<&str>, pool: &str) -> Result<PoolConfig, ConfigError> {
-    let explicit = path.map(str::to_string).or_else(|| env::var(CONFIG_ENV).ok());
+    let explicit = path
+        .map(str::to_string)
+        .or_else(|| env::var(CONFIG_ENV).ok());
     let chosen: Option<PathBuf> = match explicit {
         Some(p) if !p.is_empty() => {
             let f = PathBuf::from(p);
-            if f.is_file() { Some(f) } else { None }
+            if f.is_file() {
+                Some(f)
+            } else {
+                None
+            }
         }
         _ => {
             let home = env::var("HOME").unwrap_or_default();
-            ["./gc-primitives.yaml".to_string(),
-             "./config/gc-primitives.yaml".to_string(),
-             format!("{}/.config/gc-primitives.yaml", home),
-             "/etc/gc-primitives.yaml".to_string()]
-                .iter().map(|s| PathBuf::from(s.as_str())).find(|p| p.is_file())
+            [
+                "./gc-primitives.yaml".to_string(),
+                "./config/gc-primitives.yaml".to_string(),
+                format!("{}/.config/gc-primitives.yaml", home),
+                "/etc/gc-primitives.yaml".to_string(),
+            ]
+            .iter()
+            .map(|s| PathBuf::from(s.as_str()))
+            .find(|p| p.is_file())
         }
     };
     let mut cfg = PoolConfig::default();
@@ -463,14 +626,16 @@ pub fn load_config(path: Option<&str>, pool: &str) -> Result<PoolConfig, ConfigE
         let flat = parse_yaml_subset(&text)?;
         let prefix = format!("pools.{}.", pool);
         for (k, v) in &flat {
-            if !k.starts_with(&prefix) { continue }
+            if !k.starts_with(&prefix) {
+                continue;
+            }
             let key = &k[prefix.len()..];
             if let Some(h) = key.strip_prefix("lifecycle.") {
                 cfg.lifecycle.insert(h.to_string(), v.clone());
                 continue;
             }
             if !LEGAL_KEYS.contains(&key) {
-                return Err(ConfigError(format!("unknown config key: {}", key)))
+                return Err(ConfigError(format!("unknown config key: {}", key)));
             }
             apply(&mut cfg, key, v)?;
         }
@@ -480,7 +645,9 @@ pub fn load_config(path: Option<&str>, pool: &str) -> Result<PoolConfig, ConfigE
     }
     for key in LEGAL_KEYS {
         if let Some(v) = env_override(pool, key) {
-            if !v.is_empty() { apply(&mut cfg, key, &unquote(&v))?; }
+            if !v.is_empty() {
+                apply(&mut cfg, key, &unquote(&v))?;
+            }
         }
     }
     cfg.validate()?;
@@ -496,8 +663,11 @@ pub struct PoolManager {
 
 impl PoolManager {
     pub fn new(path: Option<&str>) -> Self {
-        Self { path: path.map(str::to_string), pools: Mutex::new(BTreeMap::new()),
-               last_mtime: Mutex::new(None) }
+        Self {
+            path: path.map(str::to_string),
+            pools: Mutex::new(BTreeMap::new()),
+            last_mtime: Mutex::new(None),
+        }
     }
     pub fn register(&self, name: &str, pool: Arc<SharedPool<String>>) {
         self.pools.lock().unwrap().insert(name.to_string(), pool);
@@ -511,12 +681,16 @@ impl PoolManager {
         let mt = self.mtime();
         {
             let mut last = self.last_mtime.lock().unwrap();
-            if mt.is_some() && *last == mt { return false }
+            if mt.is_some() && *last == mt {
+                return false;
+            }
             *last = mt;
         }
         let pools = self.pools.lock().unwrap();
         for (name, p) in pools.iter() {
-            if let Ok(cfg) = load_config(self.path.as_deref(), name) { p.apply_config(cfg); }
+            if let Ok(cfg) = load_config(self.path.as_deref(), name) {
+                p.apply_config(cfg);
+            }
         }
         true
     }
@@ -548,13 +722,21 @@ pub struct LifecycleHooks<T> {
 }
 impl<T> Default for LifecycleHooks<T> {
     fn default() -> Self {
-        Self { on_create: None, on_borrow: None, on_return: None,
-               on_evict: None, on_destroy: None, clear_sensitive: false }
+        Self {
+            on_create: None,
+            on_borrow: None,
+            on_return: None,
+            on_evict: None,
+            on_destroy: None,
+            clear_sensitive: false,
+        }
     }
 }
 impl<T> LifecycleHooks<T> {
     fn fire(h: &Option<Hook<T>>, v: &T) {
-        if let Some(f) = h { f(v) }
+        if let Some(f) = h {
+            f(v)
+        }
     }
 }
 
@@ -607,15 +789,27 @@ pub struct SharedPool<T: Send + 'static> {
 }
 
 impl<T: Send + 'static> SharedPool<T> {
-    pub fn new(factory: Factory<T>, recycler: Recycler<T>,
-               cfg: PoolConfig, hooks: LifecycleHooks<T>) -> Result<Arc<Self>, SharedError> {
+    pub fn new(
+        factory: Factory<T>,
+        recycler: Recycler<T>,
+        cfg: PoolConfig,
+        hooks: LifecycleHooks<T>,
+    ) -> Result<Arc<Self>, SharedError> {
         cfg.validate().map_err(|e| SharedError::Config(e.0))?;
         let p = Arc::new(Self {
-            factory, recycler,
-            inner: Mutex::new(SharedInner { cfg, hooks, free: Vec::new(),
-                                            active: Vec::new(), closed: false }),
-            cv: Condvar::new(), metrics: MetricsCollector::new(),
-            leaks: LeakDetector::new(), seq: AtomicU64::new(0),
+            factory,
+            recycler,
+            inner: Mutex::new(SharedInner {
+                cfg,
+                hooks,
+                free: Vec::new(),
+                active: Vec::new(),
+                closed: false,
+            }),
+            cv: Condvar::new(),
+            metrics: MetricsCollector::new(),
+            leaks: LeakDetector::new(),
+            seq: AtomicU64::new(0),
         });
         let n = { p.inner.lock().unwrap().cfg.prewarm };
         for _ in 0..n {
@@ -628,21 +822,32 @@ impl<T: Send + 'static> SharedPool<T> {
     pub fn borrow(self: &Arc<Self>, tag: &str) -> Result<SharedLease<T>, SharedError> {
         let t0 = Instant::now();
         let mut g = self.inner.lock().unwrap();
-        if g.closed { return Err(SharedError::PoolClosed) }
-        let limit = g.cfg.max_size +
-            if g.cfg.on_full == OnFull::Grow { g.cfg.max_overflow } else { 0 };
+        if g.closed {
+            return Err(SharedError::PoolClosed);
+        }
+        let limit = g.cfg.max_size
+            + if g.cfg.on_full == OnFull::Grow {
+                g.cfg.max_overflow
+            } else {
+                0
+            };
         loop {
-            if (g.active.len() as u64) < limit { break }
+            if (g.active.len() as u64) < limit {
+                break;
+            }
             match g.cfg.on_full {
                 OnFull::Reject => return Err(SharedError::PoolExhausted),
                 OnFull::Block => {
-                    if g.cfg.block_timeout_ms < 0 { g = self.cv.wait(g).unwrap(); }
-                    else {
-                        let timeout = std::time::Duration::from_millis(
-                            g.cfg.block_timeout_ms as u64);
+                    if g.cfg.block_timeout_ms < 0 {
+                        g = self.cv.wait(g).unwrap();
+                    } else {
+                        let timeout =
+                            std::time::Duration::from_millis(g.cfg.block_timeout_ms as u64);
                         let (guard, res) = self.cv.wait_timeout(g, timeout).unwrap();
                         g = guard;
-                        if res.timed_out() { return Err(SharedError::BorrowTimeout) }
+                        if res.timed_out() {
+                            return Err(SharedError::BorrowTimeout);
+                        }
                     }
                     continue;
                 }
@@ -651,22 +856,34 @@ impl<T: Send + 'static> SharedPool<T> {
         }
         let hit;
         let created;
-        let value = if let Some(v) = g.free.pop() { hit = true; created = false; v }
-        else {
+        let value = if let Some(v) = g.free.pop() {
+            hit = true;
+            created = false;
+            v
+        } else {
             let v = (self.factory)().ok_or(SharedError::FactoryFailed)?;
-            hit = false; created = true;
+            hit = false;
+            created = true;
             LifecycleHooks::fire(&g.hooks.on_create, &v);
             v
         };
-        let id = if g.cfg.leak_detection { self.leaks.on_borrow(tag) }
-                 else { format!("{:x}", self.seq.fetch_add(1, Ordering::SeqCst) + 1) };
+        let id = if g.cfg.leak_detection {
+            self.leaks.on_borrow(tag)
+        } else {
+            format!("{:x}", self.seq.fetch_add(1, Ordering::SeqCst) + 1)
+        };
         g.active.push(id.clone());
         let wait = t0.elapsed().as_secs_f64() * 1000.0;
         self.metrics.record_borrow(hit, wait, created);
         LifecycleHooks::fire(&g.hooks.on_borrow, &value);
         drop(g);
-        Ok(SharedLease { pool: Arc::clone(self), value: Some(value), id,
-                         borrowed_at: now_s(), active: true })
+        Ok(SharedLease {
+            pool: Arc::clone(self),
+            value: Some(value),
+            id,
+            borrowed_at: now_s(),
+            active: true,
+        })
     }
 
     fn release(&self, mut value: T, id: &str, borrowed_at: f64) -> Result<(), SharedError> {
@@ -681,7 +898,7 @@ impl<T: Send + 'static> SharedPool<T> {
             LifecycleHooks::fire(&g.hooks.on_destroy, &value);
             drop(g);
             self.settle(id, borrowed_at);
-            return Err(SharedError::RecyclerFailed(e))
+            return Err(SharedError::RecyclerFailed(e));
         }
         {
             let g = self.inner.lock().unwrap();
@@ -712,7 +929,11 @@ impl<T: Send + 'static> SharedPool<T> {
 
     pub fn prewarm(self: &Arc<Self>, n: usize) -> Result<usize, SharedError> {
         let mut made = 0;
-        for _ in 0..n { let l = self.borrow("prewarm")?; l.close()?; made += 1 }
+        for _ in 0..n {
+            let l = self.borrow("prewarm")?;
+            l.close()?;
+            made += 1
+        }
         Ok(made)
     }
     pub fn detect_leaks(&self, timeout_ms: i64) -> Vec<LeaseSample> {
@@ -722,16 +943,25 @@ impl<T: Send + 'static> SharedPool<T> {
     }
     pub fn metrics(&self) -> Metrics {
         let g = self.inner.lock().unwrap();
-        self.metrics.snapshot(g.cfg.max_size, g.free.len() as u64, g.closed)
+        self.metrics
+            .snapshot(g.cfg.max_size, g.free.len() as u64, g.closed)
     }
-    pub fn stats(&self) -> Metrics { self.metrics() }
+    pub fn stats(&self) -> Metrics {
+        self.metrics()
+    }
     pub fn snapshot(&self) -> String {
         let g = self.inner.lock().unwrap();
         let leaks = self.leaks.detect_leaks(-1);
         let arr: Vec<String> = leaks.iter().map(|s| s.to_json()).collect();
-        format!("{{\"config\":{},\"stats\":{},\"active_leases\":[{}],\"idle_objects\":{}}}",
-            g.cfg.to_json(), self.metrics.snapshot(g.cfg.max_size, g.free.len() as u64, g.closed).to_json(),
-            arr.join(","), g.free.len())
+        format!(
+            "{{\"config\":{},\"stats\":{},\"active_leases\":[{}],\"idle_objects\":{}}}",
+            g.cfg.to_json(),
+            self.metrics
+                .snapshot(g.cfg.max_size, g.free.len() as u64, g.closed)
+                .to_json(),
+            arr.join(","),
+            g.free.len()
+        )
     }
     pub fn apply_config(&self, cfg: PoolConfig) {
         let _ = cfg.validate();
@@ -747,17 +977,25 @@ impl<T: Send + 'static> SharedPool<T> {
     pub fn close(&self) {
         let (victims, on_destroy) = {
             let mut g = self.inner.lock().unwrap();
-            if g.closed { return }
+            if g.closed {
+                return;
+            }
             g.closed = true;
             let v: Vec<T> = std::mem::take(&mut g.free);
             (v, g.hooks.on_destroy.clone())
         };
         self.cv.notify_all();
-        for v in &victims { LifecycleHooks::fire(&on_destroy, v) }
+        for v in &victims {
+            LifecycleHooks::fire(&on_destroy, v)
+        }
     }
     pub fn assert_no_active_leases(&self) -> Result<(), SharedError> {
         let n = self.inner.lock().unwrap().active.len() as u64;
-        if n != 0 { Err(SharedError::ActiveLeases(n)) } else { Ok(()) }
+        if n != 0 {
+            Err(SharedError::ActiveLeases(n))
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -772,16 +1010,23 @@ pub struct SharedLease<T: Send + 'static> {
 
 impl<T: Send + 'static> SharedLease<T> {
     pub fn get(&mut self) -> Result<&mut T, SharedError> {
-        if let Some(v) = self.value.as_mut() { Ok(v) }
-        else { Err(SharedError::LeaseClosed) }
+        if let Some(v) = self.value.as_mut() {
+            Ok(v)
+        } else {
+            Err(SharedError::LeaseClosed)
+        }
     }
     pub fn close(mut self) -> Result<(), SharedError> {
-        if !self.active { return Err(SharedError::DoubleClose) }
+        if !self.active {
+            return Err(SharedError::DoubleClose);
+        }
         self.active = false;
         let v = self.value.take().unwrap();
         self.pool.release(v, &self.id, self.borrowed_at)
     }
-    pub fn lease_id(&self) -> &str { &self.id }
+    pub fn lease_id(&self) -> &str {
+        &self.id
+    }
 }
 impl<T: Send + 'static> Drop for SharedLease<T> {
     fn drop(&mut self) {
@@ -803,7 +1048,11 @@ impl<T: Send + 'static> Drop for SharedLease<T> {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PoolKind { Local, Shared, Base }
+pub enum PoolKind {
+    Local,
+    Shared,
+    Base,
+}
 
 pub fn assert_combination(kind: PoolKind, operation: &str) -> Result<(), String> {
     let (shardable, l2) = match kind {
@@ -816,8 +1065,14 @@ pub fn assert_combination(kind: PoolKind, operation: &str) -> Result<(), String>
         "two_level_l2" => l2,
         _ => return Err(format!("unknown operation: {}", operation)),
     };
-    if ok { Ok(()) }
-    else { Err(format!("pool kind {:?} cannot be used for {}", kind, operation)) }
+    if ok {
+        Ok(())
+    } else {
+        Err(format!(
+            "pool kind {:?} cannot be used for {}",
+            kind, operation
+        ))
+    }
 }
 
 pub struct ShardedPool<T: Send + 'static> {
@@ -828,8 +1083,13 @@ pub struct ShardedPool<T: Send + 'static> {
 impl<T: Send + 'static> ShardedPool<T> {
     pub fn new(shards: Vec<Arc<SharedPool<T>>>, kind: PoolKind) -> Result<Self, String> {
         assert_combination(kind, "shardable")?;
-        if shards.is_empty() { return Err("shard list must not be empty".into()) }
-        Ok(Self { shards, next: AtomicU64::new(0) })
+        if shards.is_empty() {
+            return Err("shard list must not be empty".into());
+        }
+        Ok(Self {
+            shards,
+            next: AtomicU64::new(0),
+        })
     }
     pub fn borrow(&self, tag: &str) -> Result<SharedLease<T>, SharedError> {
         let i = (self.next.fetch_add(1, Ordering::SeqCst) as usize) % self.shards.len();
@@ -839,30 +1099,58 @@ impl<T: Send + 'static> ShardedPool<T> {
         let mut out = Metrics::default();
         for s in &self.shards {
             let x = s.metrics();
-            out.borrow_count += x.borrow_count; out.return_count += x.return_count;
-            out.active_leases += x.active_leases; out.pool_hits += x.pool_hits;
-            out.pool_misses += x.pool_misses; out.eviction_count += x.eviction_count;
-            out.leak_count += x.leak_count; out.created += x.created;
-            out.idle += x.idle; out.capacity += x.capacity;
+            out.borrow_count += x.borrow_count;
+            out.return_count += x.return_count;
+            out.active_leases += x.active_leases;
+            out.pool_hits += x.pool_hits;
+            out.pool_misses += x.pool_misses;
+            out.eviction_count += x.eviction_count;
+            out.leak_count += x.leak_count;
+            out.created += x.created;
+            out.idle += x.idle;
+            out.capacity += x.capacity;
         }
         let total = out.pool_hits + out.pool_misses;
-        out.hit_rate = if total == 0 { 0.0 } else { out.pool_hits as f64 / total as f64 };
+        out.hit_rate = if total == 0 {
+            0.0
+        } else {
+            out.pool_hits as f64 / total as f64
+        };
         out
     }
-    pub fn stats(&self) -> Metrics { self.metrics() }
-    pub fn close(&self) { for s in &self.shards { s.close() } }
+    pub fn stats(&self) -> Metrics {
+        self.metrics()
+    }
+    pub fn close(&self) {
+        for s in &self.shards {
+            s.close()
+        }
+    }
 }
 
-pub struct TwoLevelPool<T: Send + 'static> { l2: Arc<SharedPool<T>>, _l1_size: usize }
+pub struct TwoLevelPool<T: Send + 'static> {
+    l2: Arc<SharedPool<T>>,
+    _l1_size: usize,
+}
 
 impl<T: Send + 'static> TwoLevelPool<T> {
-    pub fn new(l2: Arc<SharedPool<T>>, l1_size: usize,
-               kind: PoolKind) -> Result<Self, String> {
+    pub fn new(l2: Arc<SharedPool<T>>, l1_size: usize, kind: PoolKind) -> Result<Self, String> {
         assert_combination(kind, "two_level_l2")?;
-        Ok(Self { l2, _l1_size: l1_size })
+        Ok(Self {
+            l2,
+            _l1_size: l1_size,
+        })
     }
-    pub fn borrow(&self, tag: &str) -> Result<SharedLease<T>, SharedError> { self.l2.borrow(tag) }
-    pub fn metrics(&self) -> Metrics { self.l2.metrics() }
-    pub fn stats(&self) -> Metrics { self.metrics() }
-    pub fn close(&self) { self.l2.close() }
+    pub fn borrow(&self, tag: &str) -> Result<SharedLease<T>, SharedError> {
+        self.l2.borrow(tag)
+    }
+    pub fn metrics(&self) -> Metrics {
+        self.l2.metrics()
+    }
+    pub fn stats(&self) -> Metrics {
+        self.metrics()
+    }
+    pub fn close(&self) {
+        self.l2.close()
+    }
 }
