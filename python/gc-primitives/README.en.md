@@ -74,7 +74,7 @@ python3 -m unittest discover -s python/gc-primitives/tests -v
 
 ## Distribution
 
-PyPI: `gc-primitives`, import name `gc_primitives`, Python 3.9+, Apache-2.0, version `0.1.1`.
+PyPI: `gc-primitives`, import name `gc_primitives`, Python 3.9+, Apache-2.0, version `0.2.0`.
 
 ```bash
 pip install gc-primitives

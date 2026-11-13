@@ -33,7 +33,7 @@ This moves half of C5 ("always strict misuse detection") into the type system â€
 
 ```toml
 [dependencies]
-gc-primitives = "0.1.0"
+gc-primitives = "0.2.0"
 ```
 
 ```rust
@@ -106,7 +106,7 @@ CI actually runs **two toolchains, Rust 1.70 (MSRV) and stable**, so the declare
 
 ## Distribution
 
-crates.io: `gc-primitives`, version `0.1.0`, Apache-2.0, zero dependencies.
+crates.io: `gc-primitives`, version `0.2.0`, Apache-2.0, zero dependencies.
 
 Publishing happens in two stages, because **crates.io Trusted Publishing can only be configured for a crate that already exists**:
 
@@ -115,4 +115,4 @@ Publishing happens in two stages, because **crates.io Trusted Publishing can onl
 
 `publish-rust.yml` supports both stages: it prefers OIDC and falls back to the Secret when OIDC is not configured yet. Registration values: owner `rainbowcrr-sys`, repository `rbc-monorepo`, workflow `publish-rust.yml`, environment `crates-io`.
 
-The version is independent from Java / C++ / Python and is not locked to the published Java `0.1.0`.
+The version is independent from Java / C++ / Python; current version is `0.2.0`.

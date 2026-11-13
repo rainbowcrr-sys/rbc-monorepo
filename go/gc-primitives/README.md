@@ -14,7 +14,7 @@
 模块路径就是仓库内的目录路径，必须完全一致：
 
 ```bash
-go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives@v0.1.0
+go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives@v0.2.0
 ```
 
 目录名带连字符，Go 包名不能带，所以显式起别名最清楚：
@@ -92,18 +92,18 @@ go vet ./...
 gofmt -l .              # 应无输出
 ```
 
-CI 真跑 **Go 1.21** 与 **stable** 两套工具链，全部通过后才打 tag。发布流水线里还有一个「使用方」job：`go mod init` → `go get ...@v0.1.0` → `go run .`，验证别人真的能下载并使用。
+CI 真跑 **Go 1.21** 与 **stable** 两套工具链，全部通过后才打 tag。发布流水线里还有一个「使用方」job：`go mod init` → `go get ...@v0.2.0` → `go run .`，验证别人真的能下载并使用。
 
 ## 分发与 tag 例外
 
 其他四语言用双下划线 tag（`gc-primitives__java__v*` 等），**Go 用不了**：多模块仓库里，子目录模块的版本 tag 必须带目录前缀，这是 Go 工具链的硬性规则。
 
 ```
-go/gc-primitives/v0.1.0
+go/gc-primitives/v0.2.0
 ```
 
-所以 Go 单列例外，SPEC 第 10 节写明。别人 `go get ...@v0.1.0` 时，Go 会自动去找这个带前缀的 tag。
+所以 Go 单列例外，SPEC 第 10 节写明。别人 `go get ...@v0.2.0` 时，Go 会自动去找这个带前缀的 tag。
 
-**没有「注册」这回事**：仓库公开、`go.mod` 路径与 GitHub 路径一致、tag 带 `v`、有 LICENSE 且导出符号有规范注释，就满足 pkg.go.dev 的收录条件。打完 tag 后工作流会请求一次 `proxy.golang.org/<模块路径>/@v/v0.1.0.info` 触发缓存与索引；若页面仍显示 Not Found，打开 https://pkg.go.dev/github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives 点一下 **Request** 即可，几分钟后出现，**无需登录、无需账号**。
+**没有「注册」这回事**：仓库公开、`go.mod` 路径与 GitHub 路径一致、tag 带 `v`、有 LICENSE 且导出符号有规范注释，就满足 pkg.go.dev 的收录条件。打完 tag 后工作流会请求一次 `proxy.golang.org/<模块路径>/@v/v0.2.0.info` 触发缓存与索引；若页面仍显示 Not Found，打开 https://pkg.go.dev/github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives 点一下 **Request** 即可，几分钟后出现，**无需登录、无需账号**。
 
-版本与另外四语言各自独立，不被已发布的 Java `0.1.1` 锁住。Go 的已发布版本同样不可覆盖。
+版本与另外四语言各自独立，不被已发布的 Java `0.2.0` 锁住。Go 的已发布版本同样不可覆盖。

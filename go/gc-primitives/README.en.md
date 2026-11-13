@@ -14,7 +14,7 @@ A Go port of the same conceptual contract as the Java / C++ / Python / Rust impl
 The module path must exactly match the repository directory path:
 
 ```bash
-go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives@v0.1.0
+go get github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives@v0.2.0
 ```
 
 The directory name contains a hyphen but a Go package name cannot, so an explicit alias is clearest:
@@ -92,18 +92,18 @@ go vet ./...
 gofmt -l .              # should print nothing
 ```
 
-CI actually runs two toolchains, **Go 1.21** and **stable**, before any tag is cut. The release pipeline also has a consumer job: `go mod init` → `go get ...@v0.1.0` → `go run .`, proving that other people can really download and use the module.
+CI actually runs two toolchains, **Go 1.21** and **stable**, before any tag is cut. The release pipeline also has a consumer job: `go mod init` → `go get ...@v0.2.0` → `go run .`, proving that other people can really download and use the module.
 
 ## Distribution and the Tag Exception
 
 The other four languages use double-underscore tags (`gc-primitives__java__v*`, etc.). **Go cannot**: in a multi-module repository, a submodule's version tag must carry the directory prefix — a hard rule of the Go toolchain.
 
 ```
-go/gc-primitives/v0.1.0
+go/gc-primitives/v0.2.0
 ```
 
-Go is therefore a documented exception (see SPEC section 10). When someone runs `go get ...@v0.1.0`, the go command looks for that prefixed tag automatically.
+Go is therefore a documented exception (see SPEC section 10). When someone runs `go get ...@v0.2.0`, the go command looks for that prefixed tag automatically.
 
-**There is nothing to "register"**: a public repository, a `go.mod` path matching the GitHub path, a `v`-prefixed tag, a LICENSE, and proper doc comments on exported symbols are all pkg.go.dev needs. After the tag is pushed, the workflow requests `proxy.golang.org/<module path>/@v/v0.1.0.info` once to warm the cache and trigger indexing. If the page still says Not Found, open https://pkg.go.dev/github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives and click **Request** — it appears within minutes, **no login and no account required**.
+**There is nothing to "register"**: a public repository, a `go.mod` path matching the GitHub path, a `v`-prefixed tag, a LICENSE, and proper doc comments on exported symbols are all pkg.go.dev needs. After the tag is pushed, the workflow requests `proxy.golang.org/<module path>/@v/v0.2.0.info` once to warm the cache and trigger indexing. If the page still says Not Found, open https://pkg.go.dev/github.com/rainbowcrr-sys/rbc-monorepo/go/gc-primitives and click **Request** — it appears within minutes, **no login and no account required**.
 
-The version is independent from the other four languages and is not locked to the published Java `0.1.1`. Published Go versions cannot be overwritten either.
+The version is independent from the other four languages and is not locked to the published Java `0.2.0`. Published Go versions cannot be overwritten either.

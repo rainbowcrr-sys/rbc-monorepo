@@ -124,14 +124,14 @@ zig build test
 
 CI 用 **Zig 0.14.0** 真跑上述三步。`std.testing.allocator` 会在每个 test 结束时检查所有分配是否释放——这是本版「不要一点 bug」最硬的一道保障。
 
-## 分发（`0.1.0` 已发布）
+## 分发（`0.2.0` 已发布）
 
-- 仓库 tag：`zig/gc-primitives/v0.1.0`
-- Release 资产：`gc-primitives-zig-0.1.0.tar.gz`，包根含 `build.zig.zon` 与 `build.zig`（`addModule` 暴露 `gc_primitives`）
+- 仓库 tag：`zig/gc-primitives/v0.2.0`
+- Release 资产：`gc-primitives-zig-0.2.0.tar.gz`，包根含 `build.zig.zon` 与 `build.zig`（`addModule` 暴露 `gc_primitives`）
 - 消费方式：在自己的 `build.zig.zon` 里写该资产的 `.url` + `.hash`，hash 由 `zig fetch <资产URL>` 给出（也可直接 `zig fetch --save <资产URL>` 自动写入）
 - CI 已用 `zig fetch` 拉取这个资产、算出 hash，再建一个独立消费包 `@import("gc_primitives")` 真编译运行，证明 tarball 可用
 - 仓库已加 `zig-package` topic，https://zigpkg.dev 搜 `gc-primitives` 可查
-- Release 页：https://github.com/rainbowcrr-sys/rbc-monorepo/releases/tag/zig/gc-primitives/v0.1.0
+- Release 页：https://github.com/rainbowcrr-sys/rbc-monorepo/releases/tag/zig/gc-primitives/v0.2.0
 
 零注册、零 token、零凭据。
 

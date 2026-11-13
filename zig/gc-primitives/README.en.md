@@ -124,14 +124,14 @@ zig build test
 
 CI actually runs all three on **Zig 0.14.0**. `std.testing.allocator` verifies that every allocation is freed at the end of each test — the hardest guarantee behind "no bugs at all" in this port.
 
-## Distribution (`0.1.0` published)
+## Distribution (`0.2.0` published)
 
-- Repository tag: `zig/gc-primitives/v0.1.0`
-- Release asset: `gc-primitives-zig-0.1.0.tar.gz`; the package root contains `build.zig.zon` and a `build.zig` that exposes the `gc_primitives` module via `addModule`
+- Repository tag: `zig/gc-primitives/v0.2.0`
+- Release asset: `gc-primitives-zig-0.2.0.tar.gz`; the package root contains `build.zig.zon` and a `build.zig` that exposes the `gc_primitives` module via `addModule`
 - To consume: add the asset `.url` + `.hash` to your own `build.zig.zon`. Get the hash from `zig fetch <asset-URL>`, or let `zig fetch --save <asset-URL>` write both for you
 - CI already fetched that exact asset with `zig fetch`, computed the hash, then built and ran a separate consumer package that does `@import("gc_primitives")`
 - The repository carries the `zig-package` topic; find it at https://zigpkg.dev by searching `gc-primitives`
-- Release page: https://github.com/rainbowcrr-sys/rbc-monorepo/releases/tag/zig/gc-primitives/v0.1.0
+- Release page: https://github.com/rainbowcrr-sys/rbc-monorepo/releases/tag/zig/gc-primitives/v0.2.0
 
 No registration, no token, no credentials.
 

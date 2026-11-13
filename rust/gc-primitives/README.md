@@ -34,7 +34,7 @@ pool.with_borrow(|value: &mut T| -> R { ... }) -> Result<R, PoolError>
 
 ```toml
 [dependencies]
-gc-primitives = "0.1.0"
+gc-primitives = "0.2.0"
 ```
 
 ```rust
@@ -107,7 +107,7 @@ CI 会真跑 **Rust 1.70**（MSRV）与 stable 两套工具链，声明的 MSRV 
 
 ## 分发
 
-crates.io：`gc-primitives`，版本 `0.1.0`，Apache-2.0，零依赖。
+crates.io：`gc-primitives`，版本 `0.2.0`，Apache-2.0，零依赖。
 
 发布分两阶段，因为 **crates.io 的 Trusted Publishing 只能给已存在的 crate 配置**：
 
@@ -116,4 +116,4 @@ crates.io：`gc-primitives`，版本 `0.1.0`，Apache-2.0，零依赖。
 
 `publish-rust.yml` 对两阶段都兼容：优先 OIDC，失败时回退 Secret。登记字段为 owner `rainbowcrr-sys`、repository `rbc-monorepo`、workflow `publish-rust.yml`、environment `crates-io`。
 
-版本与 Java / C++ / Python 各自独立，不被已发布的 Java `0.1.0` 锁住。
+版本与 Java / C++ / Python 各自独立，当前 `0.2.0`。

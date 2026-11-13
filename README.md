@@ -42,21 +42,21 @@ java/test/   cpp/test/   python/test/   rust/test/   go/test/   swift/test/   zi
 
 | 语言 | tag 格式 | 工作流 | 示例 |
 | --- | --- | --- | --- |
-| Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.1.1` |
-| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.1.1` |
-| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.1.1` |
-| Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
-| Go（例外） | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
-| Swift（例外） | `v*`（独立分发仓库） | `publish-swift.yml` | `v0.1.0` |
-| Zig（例外） | `zig/gc-primitives/v*` | `publish-zig.yml` | `zig/gc-primitives/v0.1.0` |
+| Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.2.0` |
+| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.2.0` |
+| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
+| Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.2.0` |
+| Go（例外） | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.2.0` |
+| Swift（例外） | `v*`（独立分发仓库） | `publish-swift.yml` | `v0.2.0` |
+| Zig（例外） | `zig/gc-primitives/v*` | `publish-zig.yml` | `zig/gc-primitives/v0.2.0` |
 
-Swift 另有 monorepo tag `swift/gc-primitives/v0.1.0` 用于触发流水线与挂 Release 资产；SwiftPM 的版本 tag 必须是纯语义化版本，所以放在独立分发仓库。上传类流水线都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布；**Go / Swift / Zig 是例外**——子目录模块/包的 tag 必须带目录前缀，且模块没有版本声明字段，改由「使用方拉取 + 运行」验证。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
+Swift 另有 monorepo tag `swift/gc-primitives/v0.2.0` 用于触发流水线与挂 Release 资产；SwiftPM 的版本 tag 必须是纯语义化版本，所以放在独立分发仓库。上传类流水线都校验「tag 版本 == 代码里声明的版本」，不一致直接拒绝发布；**Go / Swift / Zig 是例外**——子目录模块/包的 tag 必须带目录前缀，且模块没有版本声明字段，改由「使用方拉取 + 运行」验证。历史 tag `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` 保留但已从触发规则退役。另有一个纯 `v0.2.0` tag，仅作为 zigpkg.dev 等按仓库收录的索引站识别当前版本的 semver 锚点，不触发任何流水线。Maven Central 与 PyPI 的版本永久不可覆盖，改了代码必须升版本号。
 
 ## 导入（Java）
 
 ```groovy
 // Gradle
-implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.1'
+implementation 'net.de5.rainbowcrrsys:gc-primitives:0.2.0'
 ```
 
 ```xml
@@ -64,11 +64,11 @@ implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.1'
 <dependency>
   <groupId>net.de5.rainbowcrrsys</groupId>
   <artifactId>gc-primitives</artifactId>
-  <version>0.1.1</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
-基线：Java 11。`0.1.1` 是纯工程重构版（目录与 Gradle 路径调整），**jar 内的 class 与 `0.1.0` 完全一致**；`0.1.0` 也仍可导入。许可证：Apache-2.0。
+基线：Java 11。**当前 `0.2.0`**；`0.1.1` 是纯工程重构版（目录与 Gradle 路径调整），其 jar 内的 class 与 `0.1.0` 完全一致。许可证：Apache-2.0。
 
 ## Quick Start
 

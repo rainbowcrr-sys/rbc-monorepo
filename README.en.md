@@ -42,21 +42,21 @@ The library name `gc-primitives` already contains a hyphen, so a **double unders
 
 | Language | Tag pattern | Workflow | Example |
 | --- | --- | --- | --- |
-| Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.1.1` |
-| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.1.1` |
-| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.1.1` |
-| Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.1.0` |
-| Go (exception) | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.1.0` |
-| Swift (exception) | `v*` (standalone distribution repo) | `publish-swift.yml` | `v0.1.0` |
-| Zig (exception) | `zig/gc-primitives/v*` | `publish-zig.yml` | `zig/gc-primitives/v0.1.0` |
+| Java | `gc-primitives__java__v*` | `publish.yml` | `gc-primitives__java__v0.2.0` |
+| Python | `gc-primitives__python__v*` | `publish-pypi.yml` | `gc-primitives__python__v0.2.0` |
+| C++ | `gc-primitives__cpp__v*` | `release-cpp.yml` | `gc-primitives__cpp__v0.2.0` |
+| Rust | `gc-primitives__rust__v*` | `publish-rust.yml` | `gc-primitives__rust__v0.2.0` |
+| Go (exception) | `go/gc-primitives/v*` | `publish-go.yml` | `go/gc-primitives/v0.2.0` |
+| Swift (exception) | `v*` (standalone distribution repo) | `publish-swift.yml` | `v0.2.0` |
+| Zig (exception) | `zig/gc-primitives/v*` | `publish-zig.yml` | `zig/gc-primitives/v0.2.0` |
 
-Swift also has a monorepo tag `swift/gc-primitives/v0.1.0` that triggers the workflow and carries the Release asset; the SwiftPM version tag must be a plain semantic version, so it lives in the standalone distribution repository. Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go / Swift / Zig are the exceptions** — a subdirectory module/package tag must carry the directory prefix, and there is no version declaration field, so verification is done by a real consumer fetch + run job instead. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. Maven Central and PyPI never allow a published version to be overwritten; changing code requires a version bump.
+Swift also has a monorepo tag `swift/gc-primitives/v0.2.0` that triggers the workflow and carries the Release asset; the SwiftPM version tag must be a plain semantic version, so it lives in the standalone distribution repository. Upload-style pipelines verify "tag version == declared version in code" and refuse to publish on a mismatch; **Go / Swift / Zig are the exceptions** — a subdirectory module/package tag must carry the directory prefix, and there is no version declaration field, so verification is done by a real consumer fetch + run job instead. Historical tags `v0.1.0` / `py-v0.1.0` / `cpp-v0.1.0` are kept but retired from the trigger rules. A plain `v0.2.0` tag also exists purely as a semver anchor for repo-level indexers such as zigpkg.dev; it triggers no workflow. Maven Central and PyPI never allow a published version to be overwritten; changing code requires a version bump.
 
 ## Import (Java)
 
 ```groovy
 // Gradle
-implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.1'
+implementation 'net.de5.rainbowcrrsys:gc-primitives:0.2.0'
 ```
 
 ```xml
@@ -64,11 +64,11 @@ implementation 'net.de5.rainbowcrrsys:gc-primitives:0.1.1'
 <dependency>
   <groupId>net.de5.rainbowcrrsys</groupId>
   <artifactId>gc-primitives</artifactId>
-  <version>0.1.1</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
-Baseline: Java 11. `0.1.1` is a pure engineering refactor (directory and Gradle path changes) — **the classes inside the jar are identical to `0.1.0`**; `0.1.0` remains importable too. License: Apache-2.0.
+Baseline: Java 11. **Current version: `0.2.0`**; `0.1.1` was a pure engineering refactor (directory and Gradle path changes) whose jar classes were identical to `0.1.0`. License: Apache-2.0.
 
 ## Quick Start
 

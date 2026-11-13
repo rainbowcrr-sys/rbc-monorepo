@@ -81,7 +81,7 @@ python3 -m unittest discover -s python/gc-primitives/tests -v
 
 ## 分发
 
-PyPI：`gc-primitives`，导入名 `gc_primitives`，Python 3.9+，Apache-2.0，版本 `0.1.1`。
+PyPI：`gc-primitives`，导入名 `gc_primitives`，Python 3.9+，Apache-2.0，版本 `0.2.0`。
 
 ```bash
 pip install gc-primitives
