@@ -432,7 +432,7 @@ public enum V020 {
         private var active: [String] = []
         private var closed = false
         private var seq: UInt64 = 0
-        private let metrics = MetricsCollector()
+        private let metricsCollector = MetricsCollector()
         private let leaks = LeakDetector()
 
         public init(factory: @escaping () -> T?, recycler: @escaping (T) throws -> Void,
@@ -481,7 +481,7 @@ public enum V020 {
             if cfg.leakDetection { id = leaks.onBorrow(tag) }
             else { seq += 1; id = String(seq, radix: 16) }
             active.append(id)
-            metrics.recordBorrow(hit: hit,
+            metricsCollector.recordBorrow(hit: hit,
                                  waitMs: Date().timeIntervalSince(t0) * 1000,
                                  created: created)
             hooks.onBorrow?(value)
@@ -506,12 +506,12 @@ public enum V020 {
                 let victim = free.removeFirst()
                 free.append(value)
                 hooks.onEvict?(victim)
-                metrics.recordEviction()
+                metricsCollector.recordEviction()
             } else { free.append(value) }
             settleInLock(id, borrowedAt)
         }
         private func settleInLock(_ id: String, _ borrowedAt: Double) {
-            metrics.recordReturn(lifetimeMs: (Date().timeIntervalSince1970 - borrowedAt) * 1000)
+            metricsCollector.recordReturn(lifetimeMs: (Date().timeIntervalSince1970 - borrowedAt) * 1000)
             if let i = active.firstIndex(of: id) { active.remove(at: i) }
         }
         private func settle(_ id: String, _ borrowedAt: Double) {
@@ -525,12 +525,12 @@ public enum V020 {
         }
         public func detectLeaks(timeoutMs: Int64? = nil) -> [LeaseSample] {
             let out = leaks.detectLeaks(timeoutMs: timeoutMs ?? cfg.leakTimeoutMs)
-            metrics.recordLeak(out.count)
+            metricsCollector.recordLeak(out.count)
             return out
         }
         public func metrics() -> Metrics {
             lock.lock(); defer { lock.unlock() }
-            return metrics.snapshot(capacity: cfg.maxSize, idle: free.count, closed: closed)
+            return metricsCollector.snapshot(capacity: cfg.maxSize, idle: free.count, closed: closed)
         }
         public func stats() -> Metrics { metrics() }
         public func snapshot() -> String {

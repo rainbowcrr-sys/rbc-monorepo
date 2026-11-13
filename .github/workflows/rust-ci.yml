@@ -36,7 +36,16 @@ jobs:
 
       - name: Unit + integration tests
         working-directory: rust/gc-primitives
-        run: cargo test --all-targets
+        run: |
+          set +e
+          cargo test --all-targets > /tmp/rust-msrv.log 2>&1
+          code=$?
+          cat /tmp/rust-msrv.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=cargo test MSRV 1.70::$(tr '\n' ' ' < /tmp/rust-msrv.log | cut -c1-20000)"
+            exit "$code"
+          fi
 
       - name: Doctests
         working-directory: rust/gc-primitives
@@ -56,12 +65,39 @@ jobs:
 
       - name: Full test suite
         working-directory: rust/gc-primitives
-        run: cargo test
+        run: |
+          set +e
+          cargo test > /tmp/rust-stable.log 2>&1
+          code=$?
+          cat /tmp/rust-stable.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=cargo test stable::$(tr '\n' ' ' < /tmp/rust-stable.log | cut -c1-20000)"
+            exit "$code"
+          fi
 
       - name: Clippy (warnings are errors)
         working-directory: rust/gc-primitives
-        run: cargo clippy --all-targets -- -D warnings
+        run: |
+          set +e
+          cargo clippy --all-targets -- -D warnings > /tmp/clippy.log 2>&1
+          code=$?
+          cat /tmp/clippy.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=clippy::$(tr '\n' ' ' < /tmp/clippy.log | cut -c1-20000)"
+            exit "$code"
+          fi
 
       - name: rustfmt check
         working-directory: rust/gc-primitives
-        run: cargo fmt -- --check
+        run: |
+          set +e
+          cargo fmt -- --check > /tmp/rustfmt.log 2>&1
+          code=$?
+          cat /tmp/rustfmt.log
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=rustfmt diff::$(tr '\n' ' ' < /tmp/rustfmt.log | cut -c1-20000)"
+            exit "$code"
+          fi

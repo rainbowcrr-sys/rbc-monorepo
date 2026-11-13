@@ -70,15 +70,7 @@ jobs:
           if [ -z "$(gofmt -l .)" ]; then
             echo "gofmt OK"
           else
-            gofmt -d . > /tmp/gofmt.diff
-            cd "$GITHUB_WORKSPACE"
-            python3 - <<'PY'
-          import pathlib
-          diff = pathlib.Path('/tmp/gofmt.diff').read_text(encoding='utf-8')
-          encoded = (diff.replace('%', '%25')
-                         .replace('\r', '%0D')
-                         .replace('\n', '%0A'))
-          print('::error title=gofmt diff::' + encoded[:60000])
-          PY
+            gofmt -d . > /tmp/gofmt.diff 2>&1
+            echo "::error title=gofmt diff::$(tr '\n' ' ' < /tmp/gofmt.diff | cut -c1-20000)"
             exit 1
           fi
